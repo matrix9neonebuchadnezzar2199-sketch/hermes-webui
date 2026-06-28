@@ -34,6 +34,26 @@ def test_extension_settings_runtime_normalizes_persists_resets_and_clears():
         const assert = require('assert');
         const store = new Map();
         global.window = {{
+          __HERMES_EXTENSION_CONFIG__: {{
+            extensions: [{{
+              id: 'demo.ext',
+              name: 'Demo',
+              storage_owned: true,
+              settings_schema: [
+                {{key: 'flag', type: 'boolean', default: false}},
+                {{key: 'mode', type: 'enum', options: ['compact', {{value: 'full', label: 'Full'}}], default: 'compact'}},
+                {{key: 'count', type: 'integer', default: 2}},
+                {{key: 'secret', type: 'string', sensitive: true, default: 'x'}},
+                {{key: 'bad', type: 'enum', options: [{{label: 'missing value'}}]}},
+                {{key: 'flag', type: 'boolean', default: true}}
+              ]
+            }}, {{
+              id: 'denied.ext',
+              name: 'Denied',
+              storage_owned: false,
+              settings_schema: [{{key: 'flag', type: 'boolean', default: false}}],
+            }}]
+          }},
           localStorage: {{
             getItem(key) {{ return store.has(key) ? store.get(key) : null; }},
             setItem(key, value) {{ store.set(key, String(value)); }},
@@ -41,22 +61,6 @@ def test_extension_settings_runtime_normalizes_persists_resets_and_clears():
           }}
         }};
         eval(fs.readFileSync({str(EXTENSION_SETTINGS_JS)!r}, 'utf8'));
-
-        window.HermesExtensionSettings.primeFromStatus({{
-          extensions: [{{
-            id: 'demo.ext',
-            name: 'Demo',
-            storage_owned: true,
-            settings_schema: [
-              {{key: 'flag', type: 'boolean', default: false}},
-              {{key: 'mode', type: 'enum', options: ['compact', {{value: 'full', label: 'Full'}}], default: 'compact'}},
-              {{key: 'count', type: 'integer', default: 2}},
-              {{key: 'secret', type: 'string', sensitive: true, default: 'x'}},
-              {{key: 'bad', type: 'enum', options: [{{label: 'missing value'}}]}},
-              {{key: 'flag', type: 'boolean', default: true}}
-            ]
-          }}]
-        }});
 
         const settings = window.HermesExtensionSettings.settingsForExtension('demo.ext');
         assert.deepStrictEqual(settings.schema.map(field => field.key), ['flag', 'mode', 'count']);
@@ -76,15 +80,6 @@ def test_extension_settings_runtime_normalizes_persists_resets_and_clears():
         assert.strictEqual(storage.clear(), true);
         assert.strictEqual(store.has('hermes.ext.storage.demo.ext'), false);
 
-        window.HermesExtensionSettings.primeFromStatus({{
-          extensions: [{{
-            id: 'denied.ext',
-            name: 'Denied',
-            storage_owned: false,
-            settings_schema: [{{key: 'flag', type: 'boolean', default: false}}],
-          }}]
-        }});
-
         const deniedSettings = window.HermesExtensionSettings.settingsForExtension('denied.ext');
         assert.strictEqual(deniedSettings.setAll({{flag: true}}).ok, false);
         assert.strictEqual(store.has('hermes.ext.settings.denied.ext'), false);
@@ -92,6 +87,19 @@ def test_extension_settings_runtime_normalizes_persists_resets_and_clears():
         const deniedStorage = window.HermesExtensionSettings.storageForExtension('denied.ext');
         assert.strictEqual(deniedStorage.set('note', 'blocked'), false);
         assert.strictEqual(store.has('hermes.ext.storage.denied.ext'), false);
+
+        window.HermesExtensionSettings.primeFromStatus({{
+          extensions: [{{
+            id: 'unknown.ext',
+            name: 'Unknown',
+            storage_owned: true,
+            settings_schema: [{{key: 'flag', type: 'boolean', default: false}}],
+          }}]
+        }});
+
+        const unknownSettings = window.HermesExtensionSettings.settingsForExtension('unknown.ext');
+        assert.strictEqual(unknownSettings.setAll({{flag: true}}).ok, false);
+        assert.strictEqual(store.has('hermes.ext.settings.unknown.ext'), false);
         """
     )
     _run_node(script)

@@ -5,6 +5,8 @@
   const STORAGE_PREFIX='hermes.ext.storage.';
   const FIELD_TYPES=new Set(['boolean','string','number','integer','enum']);
   const schemas=new Map();
+  const trustedExtensions=new Map();
+  let trustedSeeded=false;
 
   function extensionId(value){
     return String(value||'').trim();
@@ -115,9 +117,28 @@
   }
 
   function primeFromStatus(statusPayload){
+    const entries=normalizeSchemas(statusPayload&&statusPayload.extensions);
+    if(!trustedSeeded){
+      trustedExtensions.clear();
+      for(const entry of entries){
+        trustedExtensions.set(entry.id,{
+          id:entry.id,
+          name:entry.name,
+          storage_owned:entry.storage_owned,
+        });
+      }
+      trustedSeeded=true;
+    }
     schemas.clear();
-    for(const entry of normalizeSchemas(statusPayload&&statusPayload.extensions)){
-      schemas.set(entry.id,entry);
+    for(const entry of entries){
+      const trusted=trustedExtensions.get(entry.id);
+      if(!trusted) continue;
+      schemas.set(entry.id,{
+        id:entry.id,
+        name:entry.name,
+        storage_owned:trusted.storage_owned===true,
+        settings_schema:trusted.storage_owned===true?entry.settings_schema:[],
+      });
     }
   }
 
