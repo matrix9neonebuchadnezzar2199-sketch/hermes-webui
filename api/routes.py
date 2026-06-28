@@ -14765,7 +14765,7 @@ def _normalize_tts_prosody(value, *, unit: str) -> str | None:
 
 
 def _handle_tts(handler, parsed):
-    """Generate TTS audio via Edge TTS. POST JSON body only.
+    """Generate TTS audio via supported server TTS engines. POST JSON body only.
 
     Design note addressing deep review blocker #4 (synchronous I/O):
     The server uses ThreadingHTTPServer (see server.py:173), so each request
@@ -14785,7 +14785,7 @@ def _handle_tts(handler, parsed):
     voice = "zh-CN-XiaoxiaoNeural"
     rate_str = ""
     pitch_str = ""
-    engine = "edge"  # "edge" | "elevenlabs" | "browser" (browser is client-side only)
+    engine = "edge"  # "edge" | "elevenlabs" | "openai" | "browser" (browser is client-side only)
 
     if handler.command != "POST":
         from api.helpers import bad as _bad
@@ -14941,6 +14941,77 @@ def _handle_tts(handler, parsed):
             logger.exception("ElevenLabs TTS generation failed")
             from api.helpers import bad as _bad
             return _bad(handler, "ElevenLabs TTS generation failed", 500)
+
+        handler.send_response(200)
+        handler.send_header("Content-Type", "audio/mpeg")
+        handler.send_header("Cache-Control", "no-store")
+        handler.send_header("Content-Length", str(len(audio_data)))
+        handler.end_headers()
+        try:
+            handler.wfile.write(audio_data)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+        return True
+
+    # ── OpenAI-compatible TTS ──────────────────────────────────────────
+    if engine == "openai":
+        api_key = os.getenv("VOICE_TOOLS_OPENAI_KEY", "").strip()
+        if not api_key:
+            api_key = os.getenv("OPENAI_API_KEY", "").strip()
+        if not api_key:
+            try:
+                from api.onboarding import _load_env_file
+                from api.profiles import get_active_hermes_home
+                env_cfg = _load_env_file(get_active_hermes_home() / ".env")
+                api_key = env_cfg.get("VOICE_TOOLS_OPENAI_KEY", "") or env_cfg.get("OPENAI_API_KEY", "")
+            except Exception:
+                pass
+        if not api_key:
+            from api.helpers import bad as _bad
+            return _bad(handler, "OpenAI API key not configured", 503)
+
+        base_url = "https://api.openai.com/v1"
+        model = "gpt-4o-mini-tts"
+        oai_voice = "alloy"
+        try:
+            from api.config import get_config
+            tts_cfg = (get_config() or {}).get("tts", {})
+            if isinstance(tts_cfg, dict):
+                oai_cfg = tts_cfg.get("openai", {})
+                if isinstance(oai_cfg, dict):
+                    base_url = (oai_cfg.get("base_url") or base_url).rstrip("/")
+                    model = oai_cfg.get("model") or model
+                    oai_voice = oai_cfg.get("voice") or oai_voice
+        except Exception:
+            pass
+
+        url = f"{base_url}/audio/speech"
+        req_body = json.dumps({
+            "model": model,
+            "input": text,
+            "voice": oai_voice,
+        }).encode("utf-8")
+
+        from urllib.request import Request, urlopen as _urlopen
+
+        req = Request(url, data=req_body, headers={
+            "Authorization": f"Bearer {api_key}",
+            "Content-Type": "application/json",
+            "Accept": "audio/mpeg",
+        })
+
+        audio_data = b""
+        try:
+            with _urlopen(req, timeout=30) as resp:
+                while True:
+                    chunk = resp.read(65536)
+                    if not chunk:
+                        break
+                    audio_data += chunk
+        except Exception:
+            logger.exception("OpenAI TTS generation failed")
+            from api.helpers import bad as _bad
+            return _bad(handler, "OpenAI TTS generation failed", 500)
 
         handler.send_response(200)
         handler.send_header("Content-Type", "audio/mpeg")
