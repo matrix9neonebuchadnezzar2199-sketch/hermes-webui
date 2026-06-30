@@ -10029,7 +10029,7 @@ const LOCALES = {
     goal_resumed: (goal) => `▶ 目标恢复: ${goal}`,
     goal_cleared: '目标已清除。',
     goal_no_goal: '无激活目标。',
-    goal_achieved: (reason) => `✓ 目标以达成: ${reason}`,
+    goal_achieved: (reason) => `✓ 目标已达成: ${reason}`,
     goal_paused_budget_exhausted: (turns, max_turns) => `⏸ 目标已暂停 — ${turns}/${max_turns} 回合已使用. 使用 /goal resume 以继续, 或者 /goal clear 以停止。`,
     goal_continuing: (turns, max_turns, reason) => `↻ 继续完成目标 (${turns}/${max_turns}): ${reason}`,
     cmd_interrupt: '取消当前回合并发送新消息',
