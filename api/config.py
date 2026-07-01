@@ -3340,10 +3340,17 @@ def resolve_model_reasoning_efforts(
 
     provider = _resolve_provider_alias(provider)
 
+    # IDE-copilot providers never expose reasoning effort options.
+    # Guard early so a stray config entry can't override this.
+    if provider in {"cursor-acp", "copilot-acp"}:
+        return []
+
     # 0. Provider config: providers.<name>.reasoning_efforts
     # When the user has explicitly listed valid efforts for a provider,
     # return that list directly — no heuristics, no models.dev lookup.
     # Handles both custom:<name> and bare registered provider names (e.g. wandb).
+    # Only short-circuits when the filtered list is non-empty; an all-invalid
+    # list (e.g. typos) falls through to heuristics instead of hiding reasoning.
     _prov_name = None
     if provider and provider.startswith("custom:"):
         _prov_name = provider.split(":", 1)[1]
@@ -3361,9 +3368,6 @@ def resolve_model_reasoning_efforts(
                         return _filtered
         except Exception:
             pass
-
-    if provider in {"cursor-acp", "copilot-acp"}:
-        return []
 
     hinted_model = _strip_provider_hint_for_reasoning(model)
 
