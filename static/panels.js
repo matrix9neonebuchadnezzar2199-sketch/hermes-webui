@@ -8067,6 +8067,25 @@ function _preferencesPayloadFromUi(){
   if(showBusyPlaceholderHintCb) payload.show_busy_placeholder_hint=showBusyPlaceholderHintCb.checked;
   const botNameField=$('settingsBotName');
   if(botNameField) payload.bot_name=botNameField.value;
+  const ttsEnabledCb=$('settingsTtsEnabled');
+  if(ttsEnabledCb) payload.tts_enabled=ttsEnabledCb.checked;
+  const ttsAutoReadCb=$('settingsTtsAutoRead');
+  if(ttsAutoReadCb) payload.tts_auto_read=ttsAutoReadCb.checked;
+  const ttsEngineSel=$('settingsTtsEngine');
+  if(ttsEngineSel) payload.tts_engine=ttsEngineSel.value||'browser';
+  const ttsVoiceSel=$('settingsTtsVoice');
+  if(ttsVoiceSel) payload.tts_voice=ttsVoiceSel.value||'';
+  const ttsRateSlider=$('settingsTtsRate');
+  if(ttsRateSlider) payload.tts_rate=parseFloat(ttsRateSlider.value);
+  const ttsPitchSlider=$('settingsTtsPitch');
+  if(ttsPitchSlider) payload.tts_pitch=parseFloat(ttsPitchSlider.value);
+  const voiceModeCb=$('settingsVoiceModeEnabled');
+  if(voiceModeCb) payload.voice_mode_button=voiceModeCb.checked;
+  const rawAudioCb=$('settingsRawAudio');
+  payload.raw_audio_mode=rawAudioCb?rawAudioCb.checked:localStorage.getItem('hermes-raw-audio-mode')==='true';
+  payload.voice_continuous=localStorage.getItem('hermes-voice-continuous')==='true';
+  const voiceSilence=parseInt(localStorage.getItem('hermes-voice-silence-ms'),10);
+  payload.voice_silence_ms=(Number.isFinite(voiceSilence)&&voiceSilence>=200)?voiceSilence:1800;
   return payload;
 }
 
@@ -8618,20 +8637,57 @@ async function loadSettingsPanel(){
         _schedulePreferencesAutosave();
       },{once:false});
     }
-    // TTS settings (localStorage-only, no server round-trip needed)
+    if(typeof window._mirrorSpeechSettingsFromServer==='function') window._mirrorSpeechSettingsFromServer(settings);
+    const _speechSetting=function(key,storageKey,fallback,kind){
+      const stored=localStorage.getItem(storageKey);
+      if(settings&&Object.prototype.hasOwnProperty.call(settings,key)){
+        const server=settings[key];
+        if(stored!==null){
+          if(kind==='bool'){
+            const serverBool=server===true||server==='true';
+            const fallbackBool=fallback===true||fallback==='true';
+            const storedBool=stored==='true';
+            if(serverBool===fallbackBool&&storedBool!==fallbackBool) return storedBool;
+          }else if(String(server)===String(fallback)&&String(stored)!==String(fallback)){
+            return stored;
+          }
+        }
+        return server;
+      }
+      return stored===null?fallback:stored;
+    };
+    const _speechBool=function(key,storageKey,fallback){
+      const value=_speechSetting(key,storageKey,fallback,'bool');
+      return value===true||value==='true';
+    };
+    const rawAudioCb=$('settingsRawAudio');
+    if(rawAudioCb){
+      rawAudioCb.checked=_speechBool('raw_audio_mode','hermes-raw-audio-mode',false);
+      rawAudioCb.onchange=function(){
+        if(typeof window._applyRawAudioModePreference==='function') window._applyRawAudioModePreference(this.checked);
+        else localStorage.setItem('hermes-raw-audio-mode',this.checked?'true':'false');
+        _schedulePreferencesAutosave();
+      };
+    }
+    const voiceContinuous=_speechBool('voice_continuous','hermes-voice-continuous',false);
+    localStorage.setItem('hermes-voice-continuous',voiceContinuous?'true':'false');
+    const voiceSilence=parseInt(_speechSetting('voice_silence_ms','hermes-voice-silence-ms',1800),10);
+    localStorage.setItem('hermes-voice-silence-ms',Number.isFinite(voiceSilence)&&voiceSilence>=200?String(voiceSilence):'1800');
+    // TTS settings use /api/settings as the durable source and localStorage as the runtime cache.
     const ttsEnabledCb=$('settingsTtsEnabled');
-    if(ttsEnabledCb){ttsEnabledCb.checked=localStorage.getItem('hermes-tts-enabled')==='true';ttsEnabledCb.onchange=function(){localStorage.setItem('hermes-tts-enabled',this.checked?'true':'false');_applyTtsEnabled(this.checked);};}
+    if(ttsEnabledCb){ttsEnabledCb.checked=_speechBool('tts_enabled','hermes-tts-enabled',false);ttsEnabledCb.onchange=function(){localStorage.setItem('hermes-tts-enabled',this.checked?'true':'false');_applyTtsEnabled(this.checked);_schedulePreferencesAutosave();};}
     const ttsAutoReadCb=$('settingsTtsAutoRead');
-    if(ttsAutoReadCb){ttsAutoReadCb.checked=localStorage.getItem('hermes-tts-auto-read')==='true';ttsAutoReadCb.onchange=function(){localStorage.setItem('hermes-tts-auto-read',this.checked?'true':'false');};}
-    // Voice-mode button visibility (#1488). localStorage-only; no server round-trip.
+    if(ttsAutoReadCb){ttsAutoReadCb.checked=_speechBool('tts_auto_read','hermes-tts-auto-read',false);ttsAutoReadCb.onchange=function(){localStorage.setItem('hermes-tts-auto-read',this.checked?'true':'false');_schedulePreferencesAutosave();};}
+    // Voice-mode button visibility (#1488).
     // Toggling re-applies immediately via the boot.js helper so the user sees
     // the audio-waveform button appear/disappear without a reload.
     const voiceModeCb=$('settingsVoiceModeEnabled');
     if(voiceModeCb){
-      voiceModeCb.checked=localStorage.getItem('hermes-voice-mode-button')==='true';
+      voiceModeCb.checked=_speechBool('voice_mode_button','hermes-voice-mode-button',false);
       voiceModeCb.onchange=function(){
         localStorage.setItem('hermes-voice-mode-button',this.checked?'true':'false');
         if(typeof window._applyVoiceModePref==='function') window._applyVoiceModePref();
+        _schedulePreferencesAutosave();
       };
     }
     // TTS engine selector
@@ -8649,11 +8705,18 @@ async function loadSettingsPanel(){
           }
         });
       }
-      const saved=localStorage.getItem('hermes-tts-engine')||'browser';
+      const saved=String(_speechSetting('tts_engine','hermes-tts-engine','browser')||'browser');
+      if(!ttsEngineSel.querySelector('option[value="'+saved+'"]')){
+        var savedOpt=document.createElement('option');
+        savedOpt.value=saved; savedOpt.textContent=saved;
+        ttsEngineSel.appendChild(savedOpt);
+      }
       ttsEngineSel.value=saved;
+      localStorage.setItem('hermes-tts-engine',saved);
       ttsEngineSel.onchange=function(){
         localStorage.setItem('hermes-tts-engine',this.value);
         window._populateTtsVoices();
+        _schedulePreferencesAutosave();
       };
     }
     // Populate voice selector based on engine
@@ -8661,7 +8724,8 @@ async function loadSettingsPanel(){
     window._populateTtsVoices=function(){
       if(!ttsVoiceSel) return;
       const engine=localStorage.getItem('hermes-tts-engine')||'browser';
-      const current=localStorage.getItem('hermes-tts-voice')||'';
+      const current=String(_speechSetting('tts_voice','hermes-tts-voice','')||'');
+      localStorage.setItem('hermes-tts-voice',current);
       if(engine==='elevenlabs'){
         ttsVoiceSel.innerHTML='<option value="">Hermy — ElevenLabs (server-configured)</option>';
       } else if(engine==='openai'){
@@ -8705,24 +8769,26 @@ async function loadSettingsPanel(){
         const engine=localStorage.getItem('hermes-tts-engine')||'browser';
         if(engine==='browser') window._populateTtsVoices();
       },{once:false});
-      ttsVoiceSel.onchange=function(){localStorage.setItem('hermes-tts-voice',this.value);};
+      ttsVoiceSel.onchange=function(){localStorage.setItem('hermes-tts-voice',this.value);_schedulePreferencesAutosave();};
     }
     // TTS rate/pitch sliders
     const ttsRateSlider=$('settingsTtsRate');
     const ttsRateValue=$('settingsTtsRateValue');
     if(ttsRateSlider){
-      const savedRate=localStorage.getItem('hermes-tts-rate');
+      const savedRate=_speechSetting('tts_rate','hermes-tts-rate',1);
       ttsRateSlider.value=savedRate||'1';
       if(ttsRateValue) ttsRateValue.textContent=parseFloat(ttsRateSlider.value).toFixed(1)+'x';
-      ttsRateSlider.oninput=function(){if(ttsRateValue)ttsRateValue.textContent=parseFloat(this.value).toFixed(1)+'x';localStorage.setItem('hermes-tts-rate',this.value);};
+      localStorage.setItem('hermes-tts-rate',ttsRateSlider.value);
+      ttsRateSlider.oninput=function(){if(ttsRateValue)ttsRateValue.textContent=parseFloat(this.value).toFixed(1)+'x';localStorage.setItem('hermes-tts-rate',this.value);_schedulePreferencesAutosave();};
     }
     const ttsPitchSlider=$('settingsTtsPitch');
     const ttsPitchValue=$('settingsTtsPitchValue');
     if(ttsPitchSlider){
-      const savedPitch=localStorage.getItem('hermes-tts-pitch');
+      const savedPitch=_speechSetting('tts_pitch','hermes-tts-pitch',1);
       ttsPitchSlider.value=savedPitch||'1';
       if(ttsPitchValue) ttsPitchValue.textContent=parseFloat(ttsPitchSlider.value).toFixed(1);
-      ttsPitchSlider.oninput=function(){if(ttsPitchValue)ttsPitchValue.textContent=parseFloat(this.value).toFixed(1);localStorage.setItem('hermes-tts-pitch',this.value);};
+      localStorage.setItem('hermes-tts-pitch',ttsPitchSlider.value);
+      ttsPitchSlider.oninput=function(){if(ttsPitchValue)ttsPitchValue.textContent=parseFloat(this.value).toFixed(1);localStorage.setItem('hermes-tts-pitch',this.value);_schedulePreferencesAutosave();};
     }
     const notifCb=$('settingsNotificationsEnabled');
     if(notifCb){notifCb.checked=!!settings.notifications_enabled;notifCb.addEventListener('change',_schedulePreferencesAutosave,{once:false});}
