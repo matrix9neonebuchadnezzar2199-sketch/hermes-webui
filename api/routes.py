@@ -16670,13 +16670,18 @@ def _handle_tts(handler, parsed):
             "voice_settings": {"stability": 0.5, "similarity_boost": 0.75},
         }).encode("utf-8")
 
-        from urllib.request import Request, urlopen as _urlopen
-
+        from urllib.request import Request, build_opener
         req = Request(url, data=req_body, headers={
             "xi-api-key": api_key,
             "Content-Type": "application/json",
             "Accept": "audio/mpeg",
         })
+
+        class _NoRedirectElevenlabsHandler(HTTPRedirectHandler):
+            """Refuse to follow redirects on the ElevenLabs call."""
+
+            def redirect_request(self, req, fp, code, msg, headers, newurl):
+                raise ValueError("ElevenLabs TTS upstream attempted a redirect")
 
         # Buffer the full response before sending first byte.
         # The streaming endpoint is designed for chunked delivery, but urllib's
@@ -16684,7 +16689,7 @@ def _handle_tts(handler, parsed):
         # payloads. A hard cap keeps the buffered path bounded even if the
         # upstream misbehaves.
         try:
-            with _urlopen(req, timeout=30) as resp:
+            with _tts_open(req, timeout=30, opener_factory=lambda: build_opener(ProxyHandler({}), _NoRedirectElevenlabsHandler())) as resp:
                 audio_data = _buffer_tts_audio_response(resp)
         except ValueError:
             logger.warning("ElevenLabs TTS rejected an invalid upstream response", exc_info=True)
