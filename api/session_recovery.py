@@ -704,6 +704,12 @@ def audit_session_recovery(session_dir: Path, state_db_path: Path | None = None)
                 status.get('bak_messages', -1),
             ))
 
+    # Track sids already classified as deleted-webui-tombstone from the orphan
+    # .bak branch below, so the later state_db_missing_rows loop doesn't emit a
+    # duplicate audit item for the same sid (both a surviving .bak and a state.db
+    # row can exist for one deleted session). (#5504)
+    _bak_tombstoned_ids: set[str] = set()
+
     for bak_path in sorted(session_dir.glob('*.json.bak')):
         live_path = bak_path.with_suffix('')
         if live_path.exists() or live_path.name.startswith('_'):
@@ -720,6 +726,7 @@ def audit_session_recovery(session_dir: Path, state_db_path: Path | None = None)
             # heuristic must not suppress a genuine crash whose index survived
             # (that case is legitimately repairable). Matches the startup-recovery
             # skip + the state.db recovery path (#5504 Codex/Opus finding).
+            _bak_tombstoned_ids.add(session_id)
             items.append(_new_audit_item(
                 session_id,
                 "state_db_deleted_webui_tombstone",
@@ -762,6 +769,11 @@ def audit_session_recovery(session_dir: Path, state_db_path: Path | None = None)
 
     for row in state_db_missing_rows:
         sid = str(row.get('id') or '')
+        if sid in _bak_tombstoned_ids:
+            # Already emitted a deleted-webui-tombstone audit item from the
+            # orphan .bak branch above (surviving .bak + state.db row both exist
+            # for this one deleted session) — don't double-count. (#5504)
+            continue
         if row.get('_state_db_deleted_webui_tombstone'):
             items.append(_new_audit_item(
                 sid,

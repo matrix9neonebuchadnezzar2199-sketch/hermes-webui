@@ -126,6 +126,35 @@ def test_audit_reports_deleted_webui_tombstone_is_unsafe(tmp_path, monkeypatch):
         _m._clear_webui_deleted_session_tombstone(sid)
 
 
+def test_audit_no_double_count_when_bak_and_state_db_row_both_survive(tmp_path, monkeypatch):
+    """A deleted session with BOTH a surviving .json.bak AND a state.db row must
+    yield EXACTLY ONE deleted-webui-tombstone audit item, not two (#5504 SILENT
+    finding — the orphan-.bak branch and the state.db missing-sidecar loop both
+    used to emit it)."""
+    import api.models as _m
+    import json as _json
+    monkeypatch.setattr(_m, "SESSION_DIR", tmp_path)
+    sid = _make_state_db(tmp_path / "state.db", sid="deleted_both_001")
+    # Plant a surviving orphan .bak (no live sidecar) for the same sid.
+    (tmp_path / f"{sid}.json.bak").write_text(
+        _json.dumps({"session_id": sid, "messages": [{"role": "user", "content": "x"}]}),
+        encoding="utf-8",
+    )
+    _m._record_webui_deleted_session_tombstone(sid)
+    try:
+        report = audit_session_recovery(tmp_path, state_db_path=tmp_path / "state.db")
+        tombstone_items = [
+            item for item in report["items"]
+            if item["session_id"] == sid
+            and item["kind"] == "state_db_deleted_webui_tombstone"
+        ]
+        assert len(tombstone_items) == 1, (
+            f"expected exactly one tombstone audit item, got {len(tombstone_items)}"
+        )
+    finally:
+        _m._clear_webui_deleted_session_tombstone(sid)
+
+
 def test_recover_missing_sidecars_skips_durable_delete_tombstone_without_index(tmp_path, monkeypatch):
     import api.models as _m
 
