@@ -2,14 +2,42 @@
 
 from __future__ import annotations
 
-import copy
+import json
+import sqlite3
 from collections import OrderedDict
 from io import BytesIO
 from types import SimpleNamespace
+from urllib.parse import urlparse
 
 import pytest
 
 pytestmark = pytest.mark.requires_agent_modules
+
+
+class _GetHandler:
+    def __init__(self, path: str):
+        self.path = path
+        self.headers = {}
+        self.client_address = ("127.0.0.1", 12345)
+        self.status = None
+        self.wfile = BytesIO()
+        self.response_headers = []
+
+    def send_response(self, status):
+        self.status = status
+
+    def send_header(self, key, value):
+        self.response_headers.append((key, value))
+
+    def end_headers(self):
+        pass
+
+    @property
+    def response_json(self):
+        return json.loads(self.wfile.getvalue().decode("utf-8"))
+
+    def log_message(self, *args, **kwargs):
+        pass
 
 
 def _msg(role: str, content: str, ts: float, mid: str) -> dict:
@@ -42,6 +70,7 @@ def _post_clear(monkeypatch, sid: str):
 
     body = b'{"session_id":"%s"}' % sid.encode("utf-8")
     monkeypatch.setattr(routes, "_check_csrf", lambda handler: True)
+    original_j = routes.j
 
     captured = {}
 
@@ -56,8 +85,34 @@ def _post_clear(monkeypatch, sid: str):
         headers={"Content-Length": str(len(body))},
         rfile=BytesIO(body),
     )
-    routes.handle_post(handler, SimpleNamespace(path="/api/session/clear"))
+    try:
+        routes.handle_post(handler, SimpleNamespace(path="/api/session/clear"))
+    finally:
+        monkeypatch.setattr(routes, "j", original_j)
     return captured
+
+
+def _make_state_db(path, sid: str, source: str, rows):
+    conn = sqlite3.connect(path)
+    try:
+        conn.execute(
+            "CREATE TABLE sessions (id TEXT PRIMARY KEY, source TEXT, title TEXT, model TEXT, started_at REAL, message_count INTEGER)"
+        )
+        conn.execute(
+            "CREATE TABLE messages (id INTEGER PRIMARY KEY AUTOINCREMENT, session_id TEXT, role TEXT, content TEXT, timestamp REAL)"
+        )
+        conn.execute(
+            "INSERT INTO sessions (id, source, title, model, started_at, message_count) VALUES (?, ?, ?, ?, ?, ?)",
+            (sid, source, f"Imported {source}", "test-model", 1000.0, len(rows)),
+        )
+        for row in rows:
+            conn.execute(
+                "INSERT INTO messages (session_id, role, content, timestamp) VALUES (?, ?, ?, ?)",
+                (sid, row["role"], row["content"], row["timestamp"]),
+            )
+        conn.commit()
+    finally:
+        conn.close()
 
 
 @pytest.mark.parametrize(
@@ -71,7 +126,7 @@ def test_session_clear_preserves_imported_messaging_transcript_and_blocks_state_
     source_label,
 ):
     import api.routes as routes
-    from api.models import Session, merge_session_messages_append_only
+    from api.models import Session, get_cli_session_messages, merge_session_messages_append_only
 
     _install_isolated_session_env(monkeypatch, tmp_path)
 
@@ -109,12 +164,7 @@ def test_session_clear_preserves_imported_messaging_transcript_and_blocks_state_
         _msg("user", f"{source_label} external prompt", 10.0, f"{source_tag}-ext-u1"),
         _msg("assistant", f"{source_label} external reply", 11.0, f"{source_tag}-ext-a1"),
     ]
-    external_before = copy.deepcopy(external_messages)
-    state_db_messages = [
-        _msg("user", f"{source_label} state prompt", 20.0, f"{source_tag}-db-u1"),
-        _msg("assistant", f"{source_label} state reply", 21.0, f"{source_tag}-db-a1"),
-    ]
-    state_db_before = copy.deepcopy(state_db_messages)
+    _make_state_db(tmp_path / "state.db", sid, source_tag, external_messages)
 
     captured = _post_clear(monkeypatch, sid)
 
@@ -156,14 +206,18 @@ def test_session_clear_preserves_imported_messaging_transcript_and_blocks_state_
     assert '"pending_started_at": null' in persisted
     assert '"pending_user_source": null' in persisted
 
-    assert external_messages == external_before
-    assert state_db_messages == state_db_before
+    state_db_messages = get_cli_session_messages(sid)
+    assert [(m["role"], m["content"], m["timestamp"]) for m in state_db_messages] == [
+        (m["role"], m["content"], m["timestamp"]) for m in external_messages
+    ]
 
-    display_messages = routes._merged_session_messages_for_display(
-        loaded,
-        cli_messages=external_messages,
-    )
-    assert display_messages == external_messages
+    handler = _GetHandler(f"/api/session?session_id={sid}&resolve_model=0")
+    routes.handle_get(handler, urlparse(handler.path))
+    assert handler.status == 200
+    payload_messages = handler.response_json["session"]["messages"]
+    assert [(m["role"], m["content"], m["timestamp"]) for m in payload_messages] == [
+        (m["role"], m["content"], m["timestamp"]) for m in external_messages
+    ]
 
     merged = merge_session_messages_append_only(
         loaded.messages,
