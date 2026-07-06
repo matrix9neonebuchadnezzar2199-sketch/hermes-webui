@@ -6583,7 +6583,9 @@ function showApprovalCard(pending, pendingCount) {
   if (!_approvalPromptBelongsToActiveSession(sid)) return;
   if (pending && pending.approval_id && _isApprovalDismissed(sid, pending.approval_id)) return;
   const keys = pending.pattern_keys || (pending.pattern_key ? [pending.pattern_key] : []);
-  const desc = (pending.description || "") + (keys.length ? " [" + keys.join(", ") + "]" : "");
+  const desc = typeof formatApprovalDescription === 'function'
+    ? formatApprovalDescription(pending)
+    : ((pending.description || "") + (keys.length ? " [" + keys.join(", ") + "]" : ""));
   const cmd = pending.command || "";
   const sig = JSON.stringify({desc, cmd, sid: pending._session_id || (S.session && S.session.session_id) || null, approval_id: pending.approval_id || null});
   const card = $("approvalCard");
@@ -6597,7 +6599,9 @@ function showApprovalCard(pending, pendingCount) {
   const counter = $("approvalCounter");
   if (counter) {
     if (pendingCount && pendingCount > 1) {
-      counter.textContent = "1 of " + pendingCount + " pending";
+      counter.textContent = typeof t === 'function'
+        ? t('approval_counter_pending', 1, pendingCount)
+        : ("1 of " + pendingCount + " pending");
       counter.style.display = "";
     } else {
       counter.style.display = "none";

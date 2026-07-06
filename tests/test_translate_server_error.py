@@ -70,6 +70,19 @@ def test_messages_js_has_no_invalid_object_literal_assignments():
     assert ",content =t(" not in src
 
 
+def test_messages_js_uses_format_approval_description():
+    src = read(REPO / "static" / "messages.js")
+    assert "formatApprovalDescription(pending)" in src
+
+
+def test_approval_pattern_translation_helpers_exist():
+    src = read(REPO / "static" / "i18n.js")
+    assert "function translateApprovalText(" in src
+    assert "function formatApprovalDescription(" in src
+    assert "approval_pattern_delete_in_root_path" in src
+    assert "approval_pattern_delete_in_root_path: 'ルートパスへの削除'" in src
+
+
 def test_workspace_api_uses_translate_server_error():
     src = read(REPO / "static" / "workspace.js")
     assert "translateServerError(j.error||j.message||text)" in src
