@@ -477,7 +477,7 @@ function showCompressionRecoveryContinuationHint(){
     const btn=card.querySelector('.compression-recovery-action');
     if(btn&&typeof btn.focus==='function') setTimeout(()=>btn.focus(),120);
   }
-  if(typeof showToast==='function') showToast('This session exhausted context compression. Start a focused continuation, then describe the next narrow task.',4500,'warning');
+  if(typeof showToast==='function') showToast(t('toast_compression_exhausted'),4500,'warning');
 }
 
 async function startCompressionRecovery(btn){
@@ -511,10 +511,10 @@ async function startCompressionRecovery(btn){
         if(staleBtn){staleBtn.disabled=true;staleBtn.classList.remove('loading');}
         retiredRecoveryCard=true;
       }
-      if(typeof showToast==='function') showToast('This conversation already moved on — the focused-continuation action is no longer available.',4000,'info');
+      if(typeof showToast==='function') showToast(t('toast_compression_action_unavailable'),4000,'info');
       return;
     }
-    if(typeof showToast==='function') showToast('Compression recovery failed: '+(e&&e.message||e),5000,'error');
+    if(typeof showToast==='function') showToast(t('err_compression_recovery')+(e&&e.message||e),5000,'error');
   }finally{
     // Do NOT re-enable a button we deliberately retired in the 409 branch.
     if(btn){if(!retiredRecoveryCard) btn.disabled=false;btn.classList.remove('loading');}
@@ -1599,7 +1599,7 @@ async function saveDashboardSettings(opts){
     if(typeof _renderTabVisibilityChips==='function') _renderTabVisibilityChips();
   }catch(err){
     if(statusEl) statusEl.textContent='Dashboard link settings failed to save.';
-    else if(typeof showToast==='function') showToast('Dashboard link settings failed to save.');
+    else if(typeof showToast==='function') showToast(t('err_dashboard_link_save'));
     try{await loadDashboardSettings();}catch(_){}
     if(opts.raiseOnError) throw err;
   }
@@ -4388,9 +4388,9 @@ document.addEventListener('click',function(e){
       api('/api/reasoning',{method:'POST',body:JSON.stringify(payload)})
         .then(function(st){
           _applyReasoningChip((st&&st.reasoning_effort)||effort, st||{});
-          showToast('🧠 Reasoning effort set to '+((st&&st.reasoning_effort)||effort));
+          showToast('🧠 '+t('toast_reasoning_effort_set', (st&&st.reasoning_effort)||effort));
         })
-        .catch(function(){showToast('🧠 Failed to set effort');});
+        .catch(function(){showToast('🧠 '+t('err_reasoning_effort_failed'));});
       closeReasoningDropdown();
     }
   }
@@ -4660,7 +4660,7 @@ function _applySessionToolsets(toolsets) {
           showToast('🌍 ' + t('session_toolsets_cleared'));
         }
       } else {
-        showToast(t('session_toolsets_failed') + (r && r.error ? r.error : 'Unknown error'), 3000, 'error');
+        showToast(t('session_toolsets_failed') + (r && r.error ? translateServerError(r.error) : t('err_unknown')), 3000, 'error');
       }
     })
     .catch(function(err) {
@@ -5067,7 +5067,7 @@ if(typeof window!=='undefined'){
     if(_indicator) return;
     _indicator=document.createElement('div');
     _indicator.className='pull-to-refresh-indicator';
-    _indicator.innerHTML='<span class="ptr-icon">↓</span> <span class="ptr-text">Pull to refresh</span>';
+    _indicator.innerHTML='<span class="ptr-icon">↓</span> <span class="ptr-text">'+t('pull_to_refresh')+'</span>';
     el.parentNode.insertBefore(_indicator,el);
   }
   function _ptrUpdate(progress){
@@ -5077,7 +5077,7 @@ if(typeof window!=='undefined'){
     const icon=_indicator.querySelector('.ptr-icon');
     const text=_indicator.querySelector('.ptr-text');
     if(icon) icon.classList.toggle('ready',!pulling);
-    if(text) text.textContent=pulling?'Pull to refresh':'Release to refresh';
+    if(text) text.textContent=pulling?t('pull_to_refresh'):t('release_to_refresh');
   }
   function _ptrReset(){
     _ptrState=0;
@@ -7182,7 +7182,7 @@ function _renderQueueChips(sid){
         updateQueueBadge(sid);
       };
       if(hasFiles){
-        if(typeof showToast==='function') showToast('Attachments on queued items will be removed',2600,'warning');
+        if(typeof showToast==='function') showToast(t('toast_attachments_queued_removed'),2600,'warning');
       }
       // Merge from current live queue (no delay — snapshot + defer caused data-loss races)
       _doMerge([..._getSessionQueue(sid,false)]);
@@ -7372,7 +7372,7 @@ function dismissToast(btnOrEl){
 function copyToastText(btn){
   const el=btn&&btn.closest?btn.closest('#toast'):null;
   const text=el?(el.dataset.toastMessage||el.textContent||''):'';
-  const done=()=>{const old=btn.textContent;btn.textContent='Copied';setTimeout(()=>{btn.textContent=old;},1200);};
+  const done=()=>{const old=btn.textContent;btn.textContent=t('toast_copied_btn');setTimeout(()=>{btn.textContent=old;},1200);};
   _copyText(text).then(done).catch(()=>{});
 }
 function showToast(msg,ms,type){
@@ -7382,7 +7382,7 @@ function showToast(msg,ms,type){
   const duration=(ms==null)?(t==='error'?TOAST_ERROR_DEFAULT_MS:TOAST_DEFAULT_MS):ms;
   el.className='toast show '+t;
   el.dataset.toastMessage=s;
-  if(t==='error') el.innerHTML=`<span class="toast-message">${esc(s)}</span><button class="toast-copy" type="button" data-toast-copy="1" onclick="copyToastText(this);event.stopPropagation()">Copy</button><button class="toast-dismiss" type="button" aria-label="Dismiss error toast" data-toast-dismiss="1" onclick="dismissToast(this);event.stopPropagation()">Dismiss</button>`;
+  if(t==='error') el.innerHTML=`<span class="toast-message">${esc(s)}</span><button class="toast-copy" type="button" data-toast-copy="1" onclick="copyToastText(this);event.stopPropagation()">${t('toast_copy_btn')}</button><button class="toast-dismiss" type="button" aria-label="${t('toast_dismiss_aria')}" data-toast-dismiss="1" onclick="dismissToast(this);event.stopPropagation()">${t('dismiss')}</button>`;
   else el.textContent=s;
   el.onmouseenter=()=>clearToastDismissTimer(el);
   el.onmouseleave=()=>setToastDismissTimer(el,duration);
@@ -7767,13 +7767,13 @@ function _playEdgeTtsChunked(text, btn){
         _playingEdgeAudio=null;
         _ttsSpeaking=false;
         if(btn) btn.dataset.speaking='0';
-        if(typeof showToast==='function') showToast('Edge TTS error: '+(e&&e.message||e));
+        if(typeof showToast==='function') showToast(t('err_edge_tts')+(e&&e.message||e));
       });
     })
     .catch(function(e){
       _ttsSpeaking=false;_playingEdgeAudio=null;
       if(btn) btn.dataset.speaking='0';
-      if(typeof showToast==='function') showToast('Edge TTS failed: '+(e&&e.message||e));
+      if(typeof showToast==='function') showToast(t('err_edge_tts_failed')+(e&&e.message||e));
     });
   };
   _playOne(0);
@@ -8591,7 +8591,7 @@ function _showAgentHealthAlert(payload){
   const title=$('agentHealthTitle');
   const details=$('agentHealthDetails');
   if(!banner) return;
-  if(title) title.textContent='Hermes agent is not responding';
+  if(title) title.textContent=t('agent_not_responding');
   const state=payload&&payload.details&&payload.details.gateway_state?` State: ${payload.details.gateway_state}.`:'';
   if(details) details.textContent=`Gateway heartbeat failed.${state} Messages may not be delivered until it comes back.`;
   banner.hidden=false;
@@ -8612,7 +8612,7 @@ async function restartGatewayService(){
   try {
     const res = await api('/api/health/restart', {method: 'POST'});
     if(res && res.ok){
-      showToast('Gateway service restarted successfully');
+      showToast(t('gateway_service_restart_success'));
       _hideAgentHealthAlert();
       _lastGatewayRestartTime = Date.now();
       setTimeout(pollAgentHealth, 15000);
@@ -8620,7 +8620,7 @@ async function restartGatewayService(){
       showToast(res && res.error || 'Failed to restart gateway service');
     }
   } catch(e) {
-    showToast('Failed to restart gateway service: ' + e.message);
+    showToast(t('gateway_service_restart_failed') + e.message);
   } finally {
     btn.disabled = false;
     if(dismissBtn) dismissBtn.disabled = false;
@@ -8686,7 +8686,7 @@ async function refreshSession() {
     S.activeStreamId=data.session.active_stream_id||null;
 
     syncTopbar(); _renderMessagesWithScrollSnapshot();
-    showToast('Conversation refreshed');
+    showToast(t('toast_conversation_refreshed'));
   } catch(e) { setStatus('Refresh failed: ' + e.message); }
 }
 // ── Update banner ──
@@ -9139,31 +9139,31 @@ async function forceUpdate(btn){
   const target=btn&&btn.dataset.target;
   if(!target) return;
   const confirmed=await showConfirmDialog({
-    title:'Force update '+target+'?',
-    message:'This will discard all local changes and delete untracked files in the '+target+' repo, then reset to the latest remote version. This cannot be undone.',
-    confirmLabel:'Force update',
+    title:t('force_update_confirm_title_target', target),
+    message:t('force_update_confirm_message_target', target),
+    confirmLabel:t('force_update_confirm_label'),
     danger:true,
     focusCancel:true,
   });
   if(!confirmed) return;
-  btn.disabled=true;btn.textContent='Force updating\u2026';
+  btn.disabled=true;btn.textContent=t('force_updating');
   const errEl=$('updateError');
   if(errEl){errEl.style.display='none';}
   try{
     const baselineServerIdentity = await _readHealthServerIdentity();
     const res=await api('/api/updates/force',{method:'POST',body:JSON.stringify({target}),timeoutMs:120000});
     if(!res.ok){
-      if(errEl){errEl.textContent='Force update failed: '+(res.message||'unknown error');errEl.style.display='block';}
-      btn.disabled=false;btn.textContent='Force update';
+      if(errEl){errEl.textContent=t('err_force_update_failed')+(res.message||t('err_unknown'));errEl.style.display='block';}
+      btn.disabled=false;btn.textContent=t('force_update_btn');
       return;
     }
-    showToast('Force update applied — restarting…');
+    showToast(t('toast_force_update_applied'));
     sessionStorage.removeItem('hermes-update-checked');
     sessionStorage.removeItem('hermes-update-dismissed');
     _waitForServerThenReload({baselineServerIdentity});
   }catch(e){
-    if(errEl){errEl.textContent='Force update failed: '+e.message;errEl.style.display='block';}
-    btn.disabled=false;btn.textContent='Force update';
+    if(errEl){errEl.textContent=t('err_force_update_failed')+e.message;errEl.style.display='block';}
+    btn.disabled=false;btn.textContent=t('force_update_btn');
   }
 }
 
@@ -9738,7 +9738,7 @@ function _assistantVisibleContentForReasoningCompare(m){
     }
   }
   if(_isMarkerOnlyAssistantCompressionMessage(m)){
-    content='**Error:** No response received after context compression. Please retry.';
+    content=t('chat_error_no_response_compression');
   }
   if(_isAssistantEmptyPlaceholderContent(m, content)) return '';
   return String(content||'');
@@ -13853,7 +13853,7 @@ function renderMessages(options){
     }
     const isUser=m.role==='user';
     if(!isUser&&_isMarkerOnlyAssistantCompressionMessage(m)){
-      content='**Error:** No response received after context compression. Please retry.';
+      content=t('chat_error_no_response_compression');
     }
     const displayContent=isUser?_stripAttachedFilesMarkerForDisplay(_stripWorkspaceDisplayPrefix(content)):content;
     if(!isUser&&_isAssistantEmptyPlaceholderContent(m, displayContent)){
@@ -17701,7 +17701,7 @@ async function deleteWorkspaceDir(relPath, name){
     showToast(t('external_link_read_only'), 2000);
     return;
   }
-  const ok=await showConfirmDialog({title:t('delete_dir_confirm',name),message:'',confirmLabel:'Delete',danger:true,focusCancel:true});
+  const ok=await showConfirmDialog({title:t('delete_dir_confirm',name),message:'',confirmLabel:t('delete_title'),danger:true,focusCancel:true});
   if(!ok)return;
   try{
     await api('/api/file/delete',{method:'POST',body:JSON.stringify({session_id:S.session.session_id,path:relPath,recursive:true})});
@@ -17897,7 +17897,7 @@ async function deleteWorkspaceFile(relPath, name){
     showToast(t('external_link_read_only'), 2000);
     return;
   }
-  const _delFile=await showConfirmDialog({title:t('delete_confirm',name),message:'',confirmLabel:'Delete',danger:true,focusCancel:true});
+  const _delFile=await showConfirmDialog({title:t('delete_confirm',name),message:'',confirmLabel:t('delete_title'),danger:true,focusCancel:true});
   if(!_delFile) return;
   try{
     await api('/api/file/delete',{method:'POST',body:JSON.stringify({session_id:S.session.session_id,path:relPath})});

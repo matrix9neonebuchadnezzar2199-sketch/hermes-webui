@@ -1471,7 +1471,7 @@ async function loadSession(sid){
         // session might still exist on the server (#4028 follow-up).
         _clearStuckSessionOnBoot(sid, currentSid);
         _msgInner.innerHTML='<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;padding:40px;text-align:center;">Failed to load session. Try refreshing or switching sessions.</div>';
-        if(typeof showToast==='function') showToast('Failed to load session',3000,'error');
+        if(typeof showToast==='function') showToast(t('err_load_session_failed'),3000,'error');
       }
     }
     _clearSameSessionForceReloadHint(sid);
@@ -1784,7 +1784,7 @@ async function loadSession(sid){
       if (_msgInner) {
         _msgInner.innerHTML = '<div style="display:flex;align-items:center;justify-content:center;height:100%;color:var(--text-muted);font-size:14px;padding:40px;text-align:center;">Failed to load messages. Try switching sessions or refreshing.</div>';
       }
-      if (typeof showToast === 'function') showToast('Failed to load conversation messages', 3000, 'error');
+      if (typeof showToast === 'function') showToast(t('err_load_messages_failed'), 3000, 'error');
       if (_loadingSessionId === sid) _loadingSessionId = null;
       return;
     }
@@ -3662,7 +3662,7 @@ function _renderBatchActionBar(){
       }));
       const retainedCount=_worktreeResponseCount(results);
       showToast(retainedCount?t('session_archived_worktree'):t('session_archived'));exitSessionSelectMode();await renderSessionList();
-    }catch(e){showToast('Archive failed: '+(e.message||e));}
+    }catch(e){showToast(t('session_archive_failed')+(e.message||e));}
   };bar.appendChild(archiveBtn);
   // Move
   const moveBtn=document.createElement('button');moveBtn.className='batch-action-btn';
@@ -3696,7 +3696,7 @@ function _renderBatchActionBar(){
         else{$('msgInner').innerHTML='';$('emptyState').style.display='';}
       }
       showToast((retainedCount?t('session_deleted_worktree'):t('session_delete'))+' ('+ids.length+')');exitSessionSelectMode();await renderSessionList();
-    }catch(e){showToast('Delete failed: '+(e.message||e));}
+    }catch(e){showToast(t('delete_failed')+(e.message||e));}
   };bar.appendChild(deleteBtn);
 }
 function _showBatchProjectPicker(){
@@ -3707,8 +3707,8 @@ function _showBatchProjectPicker(){
   const none=document.createElement('div');none.className='project-picker-item';none.textContent='No project';
   none.onclick=async()=>{picker.remove();
     try{await Promise.all(ids.map(sid=>api('/api/session/move',{method:'POST',body:JSON.stringify({session_id:sid,project_id:null})})));
-      showToast('Removed from project');exitSessionSelectMode();await renderSessionList();
-    }catch(e){showToast('Move failed: '+(e.message||e));}
+      showToast(t('toast_removed_from_project'));exitSessionSelectMode();await renderSessionList();
+    }catch(e){showToast(t('move_failed')+(e.message||e));}
   };picker.appendChild(none);
   for(const p of(_allProjects||[])){
     const item=document.createElement('div');item.className='project-picker-item';
@@ -3717,8 +3717,8 @@ function _showBatchProjectPicker(){
     const name=document.createElement('span');name.textContent=p.name;item.appendChild(name);
     item.onclick=async()=>{picker.remove();
       try{await Promise.all(ids.map(sid=>api('/api/session/move',{method:'POST',body:JSON.stringify({session_id:sid,project_id:p.project_id})})));
-        showToast('Moved to '+p.name);exitSessionSelectMode();await renderSessionList();
-      }catch(e){showToast('Move failed: '+(e.message||e));}
+        showToast(t('moved_to')+p.name);exitSessionSelectMode();await renderSessionList();
+      }catch(e){showToast(t('move_failed')+(e.message||e));}
     };picker.appendChild(item);
   }
   bar.appendChild(picker);
@@ -3879,7 +3879,7 @@ function _findSessionRenameRow(sessionId){
 
 function _buildSessionRenameStarter(session, displayEl, renderDisplay){
   return ()=>{
-    if(_isReadOnlySession(session)){ if(typeof showToast==='function') showToast('Read-only imported sessions cannot be renamed.',3000); return; }
+    if(_isReadOnlySession(session)){ if(typeof showToast==='function') showToast(t('err_read_only_rename'),3000); return; }
     if(_loadingSessionId&&_loadingSessionId!==session.session_id) return;
 
     closeSessionActionMenu();
@@ -4019,7 +4019,7 @@ function _playSessionActionMenuEntrance(menu){
 }
 
 async function _archiveSession(session, archived=true, beforeListRender=null){
-  if(_isReadOnlySession(session)){ if(typeof showToast==='function') showToast('Read-only imported sessions cannot be modified.',3000); return false; }
+  if(_isReadOnlySession(session)){ if(typeof showToast==='function') showToast(t('err_read_only_modify'),3000); return false; }
   const reflowPositions=_captureSessionReflowPositions();
   const renderHold=beforeListRender?Promise.resolve().then(beforeListRender):null;
   try{
@@ -5385,7 +5385,7 @@ async function probeGatewaySSEStatus(){
       startGatewayPollFallback(data.fallback_poll_ms || _gatewayFallbackPollMs);
       renderSessionList({deferWhileInteracting:true});
       if(!_gatewaySSEWarningShown && typeof showToast === 'function'){
-        showToast('Gateway sync unavailable — falling back to periodic refresh.', 5000);
+        showToast(t('toast_gateway_sync_fallback'), 5000);
         _gatewaySSEWarningShown = true;
       }
     }
@@ -6708,7 +6708,7 @@ function _attachProjectQuickCreateButton(chip, project){
       try{ if(typeof renderSessionList==='function') void renderSessionList({deferWhileInteracting:false}); }catch(_){}
     }catch(err){
       _setActiveProjectFilter(previousProject);
-      if(typeof showToast==='function') showToast('New conversation failed: '+(err&&err.message||err));
+      if(typeof showToast==='function') showToast(t('err_new_conversation_failed')+(err&&err.message||err));
     }
   };
   btn.ondblclick=(e)=>{stop(e);};
@@ -7512,7 +7512,7 @@ function renderSessionListFromCache(){
               if(!deleted) _settleForkSwipePaint();
             });
           }else if(typeof showToast==='function'){
-            showToast('Imported sessions cannot be deleted here.',3000);
+            showToast(t('toast_imported_cannot_delete'),3000);
             _gestureState='dragging';
             _settleForkSwipePaint();
           }
@@ -7935,7 +7935,7 @@ function renderSessionListFromCache(){
           if(!deleted) _settleSessionSwipePaint();
         });
       }else if(typeof showToast==='function'){
-        showToast('Imported sessions cannot be deleted here.',3000);
+        showToast(t('toast_imported_cannot_delete'),3000);
         _gestureState='dragging';
         _settleSessionSwipePaint();
       }
@@ -8100,7 +8100,7 @@ if(typeof window!=='undefined'){
     // handler had. A user mid-turn who hits browser Back should NOT lose the
     // active stream. They can hit Back again once the turn ends.
     if(S.busy){
-      if(typeof showToast==='function') showToast('Finish the current turn before switching sessions.',3000);
+      if(typeof showToast==='function') showToast(t('err_finish_turn_before_switch'),3000);
       return;
     }
     void loadSession(sid);
@@ -8272,9 +8272,9 @@ function _showProjectPicker(session, anchorEl){
       const idx=_allSessions.findIndex(s=>s&&s.session_id===session.session_id);
       if(idx>=0) _allSessions[idx].project_id=null;
       renderSessionListFromCache();
-      showToast('Removed from project');
+      showToast(t('toast_removed_from_project'));
     } catch(e) {
-      showToast('Unassign failed: '+(e.message||e));
+      showToast(t('err_unassign_failed')+(e.message||e));
     }
   };
   picker.appendChild(none);
@@ -8315,8 +8315,8 @@ function _showProjectPicker(session, anchorEl){
         const idx=_allSessions.findIndex(s=>s&&s.session_id===session.session_id);
         if(idx>=0) _allSessions[idx].project_id=p.project_id;
         renderSessionListFromCache();
-        showToast('Moved to '+p.name);
-      }catch(e){showToast('Move failed: '+(e.message||e));}
+        showToast(t('moved_to')+p.name);
+      }catch(e){showToast(t('move_failed')+(e.message||e));}
     };
     picker.appendChild(item);
   }
@@ -8344,10 +8344,10 @@ function _showProjectPicker(session, anchorEl){
         await api('/api/session/move',{method:'POST',body:JSON.stringify({session_id:session.session_id,project_id:res.project.project_id})});
         session.project_id=res.project.project_id;
         await renderSessionList();
-        showToast('Created "'+res.project.name+'" and moved session');
+        showToast(t('toast_created_project_and_moved', res.project.name));
       }catch(e){
         await renderSessionList();
-        showToast('Created "'+res.project.name+'" but move failed: '+(e&&e.message||'try again'));
+        showToast(t('toast_created_project_move_failed', res.project.name)+(e&&e.message||t('err_unknown')));
       }
     }
   };
@@ -8411,11 +8411,11 @@ function _startProjectCreate(bar, addBtn){
         await api('/api/projects/create',{method:'POST',body:JSON.stringify({name:inp.value.trim(),color})});
       }catch(e){
         _finishDone=false;
-        showToast('Project create failed: '+(e.message||e));
+        showToast(t('err_project_create_failed')+(e.message||e));
         return;
       }
       await renderSessionList();
-      showToast('Project created');
+      showToast(t('toast_project_created'));
     }else{
       inp.replaceWith(addBtn);
     }
@@ -8447,10 +8447,10 @@ function _startProjectRename(proj, chip){
       try {
         await api('/api/projects/rename',{method:'POST',body:JSON.stringify({project_id:proj.project_id,name:inp.value.trim()})});
         await renderSessionList();
-        showToast('Project renamed');
+        showToast(t('toast_project_renamed'));
       } catch(e) {
         _finishDone=false;
-        showToast('Rename failed: '+(e.message||e));
+        showToast(t('rename_failed')+(e.message||e));
       }
     }else{
       renderSessionListFromCache();
@@ -8505,9 +8505,9 @@ function _showProjectContextMenu(e, proj, chip){
       try {
         await api('/api/projects/rename',{method:'POST',body:JSON.stringify({project_id:proj.project_id,name:proj.name,color:hex})});
         await renderSessionList();
-        showToast('Color updated');
+        showToast(t('toast_color_updated'));
       } catch(e) {
-        showToast('Color update failed: '+(e.message||e));
+        showToast(t('err_color_update_failed')+(e.message||e));
       }
     };
     colorRow.appendChild(dot);
@@ -8542,9 +8542,9 @@ async function _confirmDeleteProject(proj){
     await api('/api/projects/delete',{method:'POST',body:JSON.stringify({project_id:proj.project_id})});
     if(_activeProject===proj.project_id) _activeProject=null;
     await renderSessionList();
-    showToast('Project deleted');
+    showToast(t('toast_project_deleted'));
   } catch(e) {
-    showToast('Delete failed: '+(e.message||e));
+    showToast(t('delete_failed')+(e.message||e));
   }
 }
 

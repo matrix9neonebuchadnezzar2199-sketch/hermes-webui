@@ -9845,7 +9845,7 @@ async function handleExtensionToggle(btn){
   }catch(e){
     btn.disabled=false;
     btn.textContent=previousText;
-    showToast('Failed to update extension: '+(e&&e.message?e.message:String(e)));
+    showToast(t('err_extension_update_failed')+(e&&e.message?e.message:String(e)));
   }
 }
 
@@ -9864,7 +9864,7 @@ async function handleExtensionSidecarProxyConsent(btn){
   }catch(e){
     btn.disabled=false;
     btn.textContent=previousText;
-    showToast('Failed to update extension sidecar proxy consent: '+(e&&e.message?e.message:String(e)));
+    showToast(t('err_extension_proxy_consent_failed')+(e&&e.message?e.message:String(e)));
   }
 }
 
@@ -9914,11 +9914,11 @@ function handleExtensionSettingsSave(btn){
   const api=window.HermesExtensionSettings.settingsForExtension(id);
   const result=api.setAll(_readExtensionSettingsForm(row));
   if(!result.ok){
-    showToast('Extension settings contain invalid values.');
+    showToast(t('toast_extension_invalid'));
     return;
   }
   _fillExtensionSettingsForm(row,id);
-  showToast('Extension settings saved in this browser.');
+  showToast(t('toast_extension_saved'));
 }
 
 function handleExtensionSettingsReset(btn){
@@ -9927,14 +9927,14 @@ function handleExtensionSettingsReset(btn){
   if(!id||!row||!window.HermesExtensionSettings) return;
   window.HermesExtensionSettings.settingsForExtension(id).reset();
   _fillExtensionSettingsForm(row,id);
-  showToast('Extension settings reset in this browser.');
+  showToast(t('toast_extension_reset'));
 }
 
 function handleExtensionStorageClear(btn){
   const id=btn&&btn.dataset.extensionStorageClear;
   if(!id||!window.HermesExtensionSettings) return;
   window.HermesExtensionSettings.storageForExtension(id).clear();
-  showToast('Extension storage cleared in this browser.');
+  showToast(t('toast_extension_cleared'));
 }
 
 async function loadExtensionsPanel(opts){
@@ -10255,7 +10255,7 @@ async function handleExtensionInstall(btn,entry){
   }catch(e){
     btn.disabled=false;
     btn.textContent=previousText;
-    showToast('Install failed: '+(e&&e.message?e.message:String(e)));
+    showToast(t('err_extension_install_failed')+(e&&e.message?e.message:String(e)));
   }
 }
 
@@ -10266,13 +10266,13 @@ async function handleExtensionUninstall(btn,id){
   btn.textContent='Uninstalling…';
   try{
     await api('/api/extensions/uninstall',{method:'POST',body:JSON.stringify({id})});
-    showToast('Extension uninstalled.');
+    showToast(t('toast_extension_uninstalled'));
     _extensionsGalleryLoaded=false;
     await loadExtensionsGallery();
   }catch(e){
     btn.disabled=false;
     btn.textContent=previousText;
-    showToast('Uninstall failed: '+(e&&e.message?e.message:String(e)));
+    showToast(t('err_extension_uninstall_failed')+(e&&e.message?e.message:String(e)));
   }
 }
 
@@ -11275,7 +11275,7 @@ async function _saveProviderKey(providerId){
       els.saveBtn.textContent=t('providers_save');
     }
   }catch(e){
-    showToast('Error: '+e.message);
+    showToast(t('error_prefix')+translateServerError(e.message));
     els.saveBtn.disabled=false;
     els.saveBtn.textContent=t('providers_save');
   }
@@ -11312,7 +11312,7 @@ async function _removeProviderKey(providerId){
     if(e&&e.status===403){
       showToast(e.message||'Session expired. Reload the page and try again.',6000,'error');
     }else{
-      showToast('Error: '+e.message);
+      showToast(t('error_prefix')+translateServerError(e.message));
     }
     if(els.saveBtn){els.saveBtn.disabled=false;els.saveBtn.textContent=t('providers_save');}
   }
@@ -11324,7 +11324,7 @@ async function _testSelfHostedConnection(providerId){
   const baseUrl=(els.baseUrlInput.value||'').trim();
   const apiKey=(els.apiKeyInput.value||'').trim();
   if(!baseUrl){
-    showToast('Base URL is required');
+    showToast(t('err_base_url_required'));
     return;
   }
 
@@ -11373,7 +11373,7 @@ async function _testSelfHostedConnection(providerId){
       els.probeStatus.style.color='var(--accent)';
       els.probeStatus.textContent=e&&e.message?e.message:'Connection test failed';
     }
-    showToast('Connection test failed: '+(e&&e.message||'request error'));
+    showToast(t('err_connection_test_failed')+(e&&e.message||t('err_unknown')));
   }finally{
     testBtn.disabled=false;
     testBtn.textContent=prevLabel;
@@ -11387,11 +11387,11 @@ async function _saveSelfHostedProvider(providerId){
   const key=(els.apiKeyInput.value||'').trim();
   const model=(els.modelInput.value||'').trim();
   if(!baseUrl){
-    showToast('Base URL is required');
+    showToast(t('err_base_url_required'));
     return;
   }
   if(!model){
-    showToast('Model is required');
+    showToast(t('err_model_required'));
     return;
   }
   if(!els.saveBtn) return;
@@ -11414,7 +11414,7 @@ async function _saveSelfHostedProvider(providerId){
       saveBtn.textContent=prevLabel;
     }
   }catch(e){
-    showToast('Error: '+(e&&e.message||'Failed to save provider'));
+    showToast(t('error_prefix')+(e&&e.message||t('err_provider_save_failed')));
     saveBtn.disabled=false;
     saveBtn.textContent=prevLabel;
   }
@@ -11591,7 +11591,7 @@ async function loadPasskeys(){
 }
 
 async function registerPasskey(){
-  if(!window.PublicKeyCredential||!navigator.credentials){showToast('Passkeys require a supported browser and secure context.');return;}
+  if(!window.PublicKeyCredential||!navigator.credentials){showToast(t('err_passkey_unsupported'));return;}
   const label='This device';
   try{
     const optData=await api('/api/auth/passkey/register/options',{method:'POST',body:'{}'});
@@ -11605,17 +11605,17 @@ async function registerPasskey(){
       id:cred.id,rawId:_bytesToB64u(cred.rawId),type:cred.type,label,
       response:{clientDataJSON:_bytesToB64u(cred.response.clientDataJSON),attestationObject:_bytesToB64u(cred.response.attestationObject)}
     })});
-    showToast('Passkey registered');
+    showToast(t('toast_passkey_registered'));
     loadPasskeys();
     try{_syncPasswordlessButton(await api('/api/auth/status'));}catch(_e){}
-  }catch(e){showToast('Passkey registration failed: '+e.message);}
+  }catch(e){showToast(t('err_passkey_register_failed')+e.message);}
 }
 
 async function deletePasskey(id){
-  const ok=await showConfirmDialog({title:'Remove passkey?',message:'This browser/device will no longer be able to sign in with that passkey.',confirmLabel:'Remove',danger:true,focusCancel:true});
+  const ok=await showConfirmDialog({title:t('passkey_remove_title'),message:t('passkey_remove_message'),confirmLabel:t('remove'),danger:true,focusCancel:true});
   if(!ok) return;
-  try{await api('/api/auth/passkey/delete',{method:'POST',body:JSON.stringify({id})});showToast('Passkey removed');loadPasskeys();try{_syncPasswordlessButton(await api('/api/auth/status'));}catch(_e){}}
-  catch(e){showToast('Failed to remove passkey: '+e.message);}
+  try{await api('/api/auth/passkey/delete',{method:'POST',body:JSON.stringify({id})});showToast(t('toast_passkey_removed'));loadPasskeys();try{_syncPasswordlessButton(await api('/api/auth/status'));}catch(_e){}}
+  catch(e){showToast(t('err_passkey_remove_failed')+e.message);}
 }
 
 function _applySavedSettingsUi(saved, body, opts){
@@ -12298,7 +12298,7 @@ async function saveSettings(andClose){
           body.default_model=model;
           body.default_model_provider=(modelState&&modelState.model===model)?(modelState.model_provider||null):null;
         }catch(_modelErr){
-          if(typeof showToast==='function') showToast('Failed to update default model — settings saved');
+          if(typeof showToast==='function') showToast(t('err_default_model_update_failed'));
         }
       }
       _applySavedSettingsUi(saved, body, {sendKey,showTokenUsage,showQuotaChip,showConversationOutline,showBusyPlaceholderHint,showTps,fadeTextEffect,showCliSessions,theme,skin,language,sidebarDensity,fontSize});
@@ -12328,7 +12328,7 @@ async function saveSettings(andClose){
         body.default_model=model;
         body.default_model_provider=(modelState&&modelState.model===model)?(modelState.model_provider||null):null;
       }catch(_modelErr){
-        if(typeof showToast==='function') showToast('Failed to update default model — settings saved');
+        if(typeof showToast==='function') showToast(t('err_default_model_update_failed'));
       }
     }
     _applySavedSettingsUi(saved, body, {sendKey,showTokenUsage,showQuotaChip,showConversationOutline,showBusyPlaceholderHint,showTps,fadeTextEffect,showCliSessions,theme,skin,language,sidebarDensity,fontSize});
@@ -12352,14 +12352,14 @@ async function signOut(){
 }
 
 async function goPasswordless(){
-  const ok=await showConfirmDialog({title:'Go passwordless?',message:'This removes the password and keeps passkey sign-in enabled. Keep at least one passkey registered or you could lose access.',confirmLabel:'Go passwordless',danger:false,focusCancel:true});
+  const ok=await showConfirmDialog({title:t('passwordless_title'),message:t('passwordless_message'),confirmLabel:t('passwordless_confirm'),danger:false,focusCancel:true});
   if(!ok) return;
   const currentPw=($('settingsCurrentPassword')||{}).value;
   const payload={_passwordless:true};
   if(_settingsPasswordAuthEnabled && currentPw) payload._current_password=currentPw;
   try{
     const saved=await api('/api/settings',{method:'POST',body:JSON.stringify(payload)});
-    showToast('Password removed. Passkey sign-in remains enabled.');
+    showToast(t('toast_password_removed_passkey'));
     _setSettingsAuthButtonsVisible(!!saved.auth_enabled);
     _syncPasswordlessButton({auth_enabled:saved.auth_enabled,password_auth_enabled:false,passkeys_count:1});
     const pwField=$('settingsPassword'); if(pwField) pwField.value='';
@@ -12371,7 +12371,7 @@ async function goPasswordless(){
       _renderSettingsAuthStatus(authStatus);
       _updateAuthWarningBadge(authStatus);
     }catch(e){}
-  }catch(e){showToast('Failed to go passwordless: '+e.message);}
+  }catch(e){showToast(t('err_passwordless_failed')+e.message);}
 }
 
 async function disableAuth(){

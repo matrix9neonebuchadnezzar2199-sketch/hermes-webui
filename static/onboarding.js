@@ -223,7 +223,7 @@ function _renderOnboardingProviderOAuthField(provider){
     <div style="flex:1">
       <strong>Use Claude Code OAuth instead</strong>
       <p style="margin-top:6px;color:var(--muted);font-size:13px"><strong>Claude Code subscription credentials are not the same as an Anthropic API key.</strong> Use this path only when you want Hermes to use Claude Code credentials already available on the server, or start a short polling flow while you complete <code>claude setup-token</code> on the host.</p>
-      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="sm-btn" id="anthropicOAuthBtn" onclick="startAnthropicOAuth()" type="button">Login with Claude Code</button></div>
+      <div style="margin-top:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap"><button class="sm-btn" id="anthropicOAuthBtn" onclick="startAnthropicOAuth()" type="button">${t('oauth_login_claude_code')}</button></div>
       <div id="anthropicOAuthFlow" style="display:none;margin-top:12px"></div>
     </div>
   </div>`;
@@ -596,7 +596,7 @@ function _setCodexOAuthButton(enabled){
 async function copyCodexOAuthCode(code){
   try{
     await navigator.clipboard.writeText(code||'');
-    showToast('Code copied');
+    showToast(t('toast_code_copied'));
   }catch(e){
     showToast(code||'');
   }
@@ -612,7 +612,7 @@ async function cancelCodexOAuth(){
   }
   _setCodexOAuthButton(true);
   if(flowDiv){
-    flowDiv.innerHTML=`<div class="onboarding-oauth-card"><div class="onboarding-oauth-icon">⏹</div><div><strong>OAuth login cancelled</strong><p style="margin-top:6px;color:var(--muted);font-size:13px">Start again whenever you're ready.</p></div></div>`;
+    flowDiv.innerHTML=`<div class="onboarding-oauth-card"><div class="onboarding-oauth-icon">⏹</div><div><strong>${t('oauth_login_cancelled')}</strong><p style="margin-top:6px;color:var(--muted);font-size:13px">${t('oauth_start_again')}</p></div></div>`;
   }
 }
 
@@ -621,7 +621,7 @@ function _renderCodexOAuthTerminal(status,message){
   if(!flowDiv)return;
   const ok=status==='success';
   const icon=ok?'✅':status==='expired'?'⌛':status==='cancelled'?'⏹':'❌';
-  const title=ok?t('oauth_codex_success'):(status==='expired'?t('oauth_codex_expired'):(status==='cancelled'?'OAuth login cancelled':t('oauth_codex_error')));
+  const title=ok?t('oauth_codex_success'):(status==='expired'?t('oauth_codex_expired'):(status==='cancelled'?t('oauth_login_cancelled'):t('oauth_codex_error')));
   flowDiv.innerHTML=`
     <div class="onboarding-oauth-card ${ok?'onboarding-oauth-ready':''}" ${ok?'':'style="border-color:var(--error,#e55)"'}>
       <div class="onboarding-oauth-icon">${icon}</div>
@@ -709,7 +709,7 @@ function _clearAnthropicOAuthPoll(){
 
 function _setAnthropicOAuthButton(enabled){
   const btn=$('anthropicOAuthBtn');
-  if(btn){btn.disabled=!enabled;btn.textContent=enabled?'Login with Claude Code':'...';}
+  if(btn){btn.disabled=!enabled;btn.textContent=enabled?t('oauth_login_claude_code'):'...';}
 }
 
 async function cancelAnthropicOAuth(){
@@ -755,7 +755,7 @@ async function _pollAnthropicOAuth(){
     _setAnthropicOAuthButton(true);
     if(status==='success'){
       _renderAnthropicOAuthTerminal('success','Hermes is now linked to Claude Code credentials. Refreshing provider status…');
-      showToast('Claude Code OAuth linked');
+      showToast(t('toast_oauth_claude_linked'));
       try{await loadOnboardingWizard();}catch(e){}
     }else if(status==='expired'){
       _renderAnthropicOAuthTerminal('expired','Claude Code credentials were not detected before this flow expired. Start a new flow to try again.');
@@ -791,7 +791,7 @@ async function startAnthropicOAuth(){
       _anthropicOAuthFlowId=null;
       _setAnthropicOAuthButton(true);
       _renderAnthropicOAuthTerminal('success','Hermes is now linked to Claude Code credentials. Refreshing provider status…');
-      showToast('Claude Code OAuth linked');
+      showToast(t('toast_oauth_claude_linked'));
       try{await loadOnboardingWizard();}catch(e){}
       return;
     }

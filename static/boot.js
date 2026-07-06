@@ -57,7 +57,7 @@ async function cancelStream(reason){
     else setStatus('');
     // /api/chat/cancel only exposes `cancelled:bool`, so we cannot
     // distinguish reasons — keep the toast generic and short.
-    if(typeof showToast==='function') showToast('Stream is no longer active',2000);
+    if(typeof showToast==='function') showToast(t('toast_stream_inactive'),2000);
   }
 }
 

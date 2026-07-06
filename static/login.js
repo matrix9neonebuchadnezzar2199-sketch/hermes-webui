@@ -11,6 +11,7 @@ document.addEventListener('DOMContentLoaded', function () {
 
   var invalidPw = form.getAttribute('data-invalid-pw') || 'Invalid password';
   var connFailed = form.getAttribute('data-conn-failed') || 'Connection failed';
+  var connUnreachable = form.getAttribute('data-conn-unreachable') || 'Cannot reach server — check your VPN / Tailscale connection.';
 
   function showErr(msg) {
     var err = document.getElementById('err');
@@ -184,7 +185,7 @@ document.addEventListener('DOMContentLoaded', function () {
           }
         })
         .catch(function () {
-          showErr('Cannot reach server — check your VPN / Tailscale connection.');
+          showErr(connUnreachable);
           setFormDisabled(true);
           // Keep retrying so the page auto-recovers once the network is back.
           if (retryTimer === null) {

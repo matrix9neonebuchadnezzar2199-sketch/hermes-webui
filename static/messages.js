@@ -1410,7 +1410,7 @@ async function send(){
     return;
   }
   if(S.session&&(S.session.read_only||S.session.is_read_only)){
-    if(typeof showToast==='function') showToast('Read-only imported sessions cannot be modified.',3000);
+    if(typeof showToast==='function') showToast(t('err_read_only_modify'),3000);
     return;
   }
   let _slashDisplayTextOverride=null;
@@ -1758,7 +1758,7 @@ async function send(){
       const _retryModelState=_chatPayloadModelState();
       queueSessionMessage(activeSid,{text:msgText,files:[],model:_retryModelState.model,model_provider:_retryModelState.model_provider,profile:S.activeProfile||'default'});
       updateQueueBadge(activeSid);
-      showToast('Current session is still running. Reconnected and queued your message.',2600);
+      showToast(t('toast_reconnected_queued'),2600);
       try{
         await loadSession(activeSid);
         setComposerStatus('');
@@ -1774,8 +1774,8 @@ async function send(){
     // Only hide approval card if it belongs to the session that just finished
     if(!_approvalSessionId || _approvalSessionId===activeSid) hideApprovalCard(true);removeThinking();
     if(!_clarifySessionId || _clarifySessionId===activeSid) hideClarifyCard(true, 'terminal');
-    S.messages.push({role:'assistant',content:`**Error:** ${errMsg}`});
-    _queueDrainSid=activeSid;renderMessages();setBusy(false);setComposerStatus(`Error: ${errMsg}`);
+    S.messages.push({role:'assistant',content:`${t('chat_error_prefix')}${translateServerError(errMsg)}`});
+    _queueDrainSid=activeSid;renderMessages();setBusy(false);setComposerStatus(`${t('error_prefix')}${translateServerError(errMsg)}`);
     // #5472: the send was rejected before the turn was durably started, so the
     // composer text + attachments (cleared at send time) would otherwise be
     // lost. Put back the ORIGINAL captured draft (not the mutated /moa/bundle
@@ -1802,7 +1802,7 @@ async function send(){
     if(startData&&startData.effective_model && S.session){
       const _sentModel=_modelState&&_modelState.model;
       if(_explicitPick && _sentModel && startData.effective_model!==_sentModel && typeof showToast==='function'){
-        showToast('Model '+_sentModel+' changed to '+startData.effective_model+' — profile provider mismatch', 5000);
+        showToast(t('toast_model_changed_mismatch', _sentModel, startData.effective_model), 5000);
       }
       S.session.model=startData.effective_model;
       S.session.model_provider=startData.effective_model_provider||S.session.model_provider||null;
@@ -2178,7 +2178,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
     if(!Array.isArray(messages)) return false;
     const msg=[...messages].reverse().find(m=>m&&m.role==='assistant');
     if(!_isMarkerOnlyAssistantMessage(msg)) return false;
-    msg.content='**Error:** No response received after context compression. Please retry.';
+    msg.content=t('chat_error_no_response_compression');
     msg.provider_details='The only assistant text returned for this turn was the internal preserved-task-list compression marker, so the WebUI replaced it with an explicit error instead of rendering the marker as a model response.';
     return true;
   }
@@ -5482,7 +5482,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
           S.busy=false;
           // No-reply guard (#373): if agent returned nothing, show inline error
           if(!S.messages.some(m=>m.role==='assistant'&&String(m.content||'').trim())&&!assistantText){removeThinking();S.messages.push({role:'assistant',content:'**No response received.** Check your API key and model selection.'});}
-          if(_markerOnlyAssistantError&&typeof showToast==='function') showToast('No response received after context compression. Please retry.',5000,'error');
+          if(_markerOnlyAssistantError&&typeof showToast==='function') showToast(t('err_compression_no_response'),5000,'error');
           if(isSessionViewed) _markSessionViewed(completedSid, completedMessageCount);
           // Cooldown: prevent refreshActiveSessionIfExternallyUpdated from
           // force-reloading immediately after "done" — the event already
@@ -5764,7 +5764,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
           window._compressionUi=null;
           if(typeof clearCompressionUi==='function') clearCompressionUi();
           if(isRecoveryControlMessage){
-            if(typeof showToast==='function') showToast('Stream recovery signal received. Restoring transcript...',3500,'error');
+            if(typeof showToast==='function') showToast(t('toast_stream_recovery'),3500,'error');
           } else if(d.session&&typeof d.session==='object'){
             S.session=d.session;
             const _nextMsgs3018=(d.session.messages||[]).filter(m=>m&&m.role);
@@ -5780,7 +5780,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
             _attachProjectedAnchorSceneToLastAssistant(S.messages);
           }
         }catch(_){
-          S.messages.push({role:'assistant',content:'**Error:** An error occurred. Check server logs.'});
+          S.messages.push({role:'assistant',content=t('chat_error_generic')});
           _attachProjectedAnchorSceneToLastAssistant(S.messages);
         }
         if(isRecoveryControlMessage){
@@ -6151,7 +6151,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
           if(typeof _setActiveSessionUrl==='function') _setActiveSessionUrl(S.session.session_id);
         }
         const _markerOnlyAssistantError=_replaceMarkerOnlyAssistantWithStreamError(S.messages);
-        if(_markerOnlyAssistantError&&typeof showToast==='function') showToast('No response received after context compression. Please retry.',5000,'error');
+        if(_markerOnlyAssistantError&&typeof showToast==='function') showToast(t('err_compression_no_response'),5000,'error');
         const hasMessageToolMetadata=S.messages.some(m=>{
           if(!m||m.role!=='assistant') return false;
           // Recognize both the standard `tool_calls` (used by completed assistant
@@ -6386,7 +6386,7 @@ async function toggleYoloFromApproval() {
     _updateYoloPill();
     hideApprovalCard(true);
     showToast(t('yolo_enabled'));
-  } catch (e) { showToast('YOLO: ' + e.message); }
+  } catch (e) { showToast(t('toast_yolo_prefix') + e.message); }
 }
 
 // ── Approval polling ──
@@ -6749,7 +6749,7 @@ async function respondApproval(choice) {
       }
       return;
     }
-    const errMsg = (result && result.error) || "Approval response not accepted.";
+    const errMsg = (result && result.error) || t('err_approval_not_accepted');
     _restoreFailedApprovalResponse(sid, errMsg);
   } catch(e) {
     const errMsg = (e && e.message) || (t("approval_responding") + " failed");
@@ -7785,7 +7785,7 @@ async function respondClarify(response) {
         input.value = draft;
         input.focus();
       }
-      const errMsg = (result && result.error) || "Clarification response not accepted — the agent may have already proceeded.";
+      const errMsg = (result && result.error) || t('err_clarify_not_accepted');
       if (typeof showToast === "function") showToast(errMsg, 5000);
       if (typeof setStatus === "function") setStatus(errMsg);
     }
@@ -7814,7 +7814,7 @@ async function respondClarify(response) {
         _clarifyId = null;
         _clearClarifyPendingForSession(sid);
         hideClarifyCard(true, "expired");
-        const errMsg = (e.message || "Clarification prompt expired or not found.");
+        const errMsg = translateServerError(e.message) || t('err_clarify_expired');
         if (typeof setStatus === "function") setStatus("Clarify: " + errMsg);
         // ``_stashClarifyDraft('expired')`` already surfaces the actionable
         // "Clarification timed out. Your draft was kept in the composer."
@@ -7838,7 +7838,7 @@ async function respondClarify(response) {
       input.value = draft;
       input.focus();
     }
-    const errMsg = (e && e.message) || "Failed to deliver clarification response.";
+    const errMsg = translateServerError(e && e.message) || t('err_clarify_deliver_failed');
     if (typeof setStatus === "function") setStatus("Clarify: " + errMsg);
     if (typeof showToast === "function") showToast(errMsg, 5000);
   }
@@ -7931,7 +7931,7 @@ function _startClarifyFallbackPoll(sid) {
           _clarifyMissingEndpointWarned = true;
           setComposerStatus("Clarify unavailable on current server build. Restart server.");
           if (typeof showToast === "function") {
-            showToast("Clarify endpoint unavailable. Please restart server.", 5000);
+            showToast(t('err_clarify_unavailable'), 5000);
           }
           if (typeof console !== "undefined" && console.warn) {
             console.warn("[clarify] pending poll endpoint unavailable", logDetails);

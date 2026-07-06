@@ -970,7 +970,7 @@ async function _runManualCompression(focusTopic){
       if(typeof setBusy==='function') setBusy(false);
       if(typeof setComposerStatus==='function') setComposerStatus('');
       renderMessages();
-      showToast('Compression failed: '+(preflightErr.message||'session no longer available'));
+      showToast(t('err_compression_failed')+(preflightErr.message||t('err_session_no_longer_available')));
       return;
     }
     if(typeof setBusy==='function') setBusy(true);
@@ -1020,7 +1020,7 @@ async function _runManualCompression(focusTopic){
     if(typeof setBusy==='function') setBusy(false);
     if(typeof setComposerStatus==='function') setComposerStatus('');
     renderMessages();
-    showToast('Compression failed: '+e.message);
+    showToast(t('err_compression_failed')+e.message);
     return;
   }
   if(typeof setBusy==='function') setBusy(false);
@@ -1131,7 +1131,7 @@ async function cmdSkills(args){
     renderMessages();
     showToast(t('type_slash'));
   }catch(e){
-    showToast('Failed to load skills: '+e.message);
+    showToast(t('err_load_skills_failed')+e.message);
   }
 }
 
@@ -1172,7 +1172,7 @@ async function cmdUse(args){
   }catch(e){
     resolve(null);
     if(_forcedSkillDirectivePending===pending)_forcedSkillDirectivePending = null;
-    showToast('Failed to load skills: '+e.message);
+    showToast(t('err_load_skills_failed')+e.message);
   }
 }
 
@@ -1771,7 +1771,7 @@ function cmdReasoning(args){
       });
     return true;
   }
-  showToast('Unknown argument: '+arg+' \u2014 use show|hide|'+EFFORTS.join('|'));
+  showToast(t('toast_unknown_argument', arg, EFFORTS.join('|')));
   return true;
 }
 function cmdVoice(){
@@ -1809,7 +1809,7 @@ async function cmdYolo(){
       // Dismiss any visible approval card
       hideApprovalCard(true);
     }
-  }catch(e){showToast('YOLO: '+e.message);}
+  }catch(e){showToast(t('toast_yolo_prefix')+e.message);}
 }
 
 // ── Branch / fork command ──
@@ -1824,7 +1824,7 @@ async function cmdBranch(args){
   const branchableReadOnlySession=typeof _isBranchableReadOnlySession==='function'
     ? _isBranchableReadOnlySession(S.session)
     : false;
-  if(readOnlySession&&!branchableReadOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
+  if(readOnlySession&&!branchableReadOnlySession){showToast(t('err_read_only_fork'),3000);return;}
   const customTitle=(args||'').trim()||null;
   try{
     const data=await api('/api/session/branch',{
@@ -1858,7 +1858,7 @@ async function forkFromMessage(msgIdx){
   const branchableReadOnlySession=typeof _isBranchableReadOnlySession==='function'
     ? _isBranchableReadOnlySession(S.session)
     : false;
-  if(readOnlySession&&!branchableReadOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
+  if(readOnlySession&&!branchableReadOnlySession){showToast(t('err_read_only_fork'),3000);return;}
   const initialSid = S.session.session_id;
   // Capture the absolute keep_count before any async work that may
   // reset _oldestIdx.  _oldestIdx is 0 when the full transcript is

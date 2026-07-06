@@ -68,7 +68,7 @@ async function api(path,opts={}){
           // Parse JSON error body and surface the human-readable message,
           // rather than showing raw JSON like {"error":"Profile 'x' does not exist."}
           let message=text;
-          try{const j=JSON.parse(text);message=j.error||j.message||text;}catch(e){}
+          try{const j=JSON.parse(text);message=translateServerError(j.error||j.message||text);}catch(e){}
           // Attach the raw HTTP context so callers can branch on status (404 stale-session
           // cleanup, 401 redirect, 503 retry, etc.) without re-parsing the message string.
           const err=new Error(message);
@@ -86,7 +86,7 @@ async function api(path,opts={}){
           timeoutId=setTimeout(()=>{
             didTimeout=true;
             if(controller) controller.abort();
-            const err=new Error('Request timed out. Please try again.');
+            const err=new Error(t('err_request_timeout'));
             err.name='TimeoutError';
             err.timeout=true;
             reject(err);
@@ -104,7 +104,7 @@ async function api(path,opts={}){
         const err=(e&&e.name==='TimeoutError')?e:new Error('Request timed out. Please try again.');
         err.name='TimeoutError';
         err.timeout=true;
-        if(timeoutToast&&typeof showToast==='function') showToast('Request timed out. Please try again.',5000,'error');
+        if(timeoutToast&&typeof showToast==='function') showToast(t('err_request_timeout'),5000,'error');
         throw err;
       }
       // Only retry on network errors (TypeError from fetch), not on HTTP errors
@@ -722,7 +722,7 @@ async function loadDir(path, opts={}){
     }
     if(!preservePreview&&typeof clearPreview==='function'){
       if(typeof _previewDirty!=='undefined'&&_previewDirty){
-        showConfirmDialog({title:t('unsaved_confirm'),message:'',confirmLabel:'Discard',danger:true,focusCancel:true}).then(ok=>{if(ok)clearPreview({keepPanelOpen:true});});
+        showConfirmDialog({title:t('unsaved_confirm'),message:'',confirmLabel:t('discard'),danger:true,focusCancel:true}).then(ok=>{if(ok)clearPreview({keepPanelOpen:true});});
       }else{
         clearPreview({keepPanelOpen:true});
       }
@@ -944,7 +944,7 @@ async function toggleEditMode(){
     return;
   }
   if(!editing && _previewServerEditable===false){
-    showToast('This Office document is preview-only.', 3000, 'error');
+    showToast(t('toast_office_preview_only'), 3000, 'error');
     return;
   }
   if(editing){
@@ -1302,7 +1302,7 @@ async function uploadToWorkspace(file, dir) {
       timeoutMs: 120000,
     });
     if (data && data.error) {
-      showToast(data.error, 5000, 'error');
+      showToast(translateServerError(data.error), 5000, 'error');
     } else if (data && (data.extract_error || (Array.isArray(data.files) && data.files.some(function(f){return f && f.extract_error;})))) {
       // Archive was rejected (zip-slip / zip-bomb / corrupt / too-many-members):
       // the file uploaded but extraction failed. Surface it as an error instead
