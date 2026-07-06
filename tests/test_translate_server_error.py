@@ -63,6 +63,13 @@ def test_ja_onboarding_server_notes_translated():
     assert "onboarding_server_note_needs_provider: 'Hermes はインストール済みですが" in src
 
 
+def test_messages_js_has_no_invalid_object_literal_assignments():
+    """Object literals must use ':' not '=' — content=t(...) breaks the whole bundle."""
+    src = read(REPO / "static" / "messages.js")
+    assert ",content=t(" not in src
+    assert ",content =t(" not in src
+
+
 def test_workspace_api_uses_translate_server_error():
     src = read(REPO / "static" / "workspace.js")
     assert "translateServerError(j.error||j.message||text)" in src

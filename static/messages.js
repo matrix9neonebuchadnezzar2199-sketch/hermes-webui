@@ -5780,7 +5780,7 @@ function attachLiveStream(activeSid, streamId, uploaded=[], options={}){
             _attachProjectedAnchorSceneToLastAssistant(S.messages);
           }
         }catch(_){
-          S.messages.push({role:'assistant',content=t('chat_error_generic')});
+          S.messages.push({role:'assistant',content: t('chat_error_generic')});
           _attachProjectedAnchorSceneToLastAssistant(S.messages);
         }
         if(isRecoveryControlMessage){
