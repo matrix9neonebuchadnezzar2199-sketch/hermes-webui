@@ -222,6 +222,7 @@ REQUIRED_LOGIN_KEYS = (
     "btn",
     "invalid_pw",
     "conn_failed",
+    "conn_unreachable",
 )
 
 # Login-flow user-facing keys that must be translated (non-English) in every locale.

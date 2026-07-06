@@ -9082,6 +9082,7 @@ _LOGIN_LOCALE = {
         "btn": "Sign in",
         "invalid_pw": "Invalid password",
         "conn_failed": "Connection failed",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "fr": {
         "lang": "fr-FR",
@@ -9091,6 +9092,7 @@ _LOGIN_LOCALE = {
         "btn": "Se connecter",
         "invalid_pw": "Mot de passe invalide",
         "conn_failed": "\u00c9chec de la connexion",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "es": {
         "lang": "es-ES",
@@ -9100,6 +9102,7 @@ _LOGIN_LOCALE = {
         "btn": "Entrar",
         "invalid_pw": "Contrase\u00f1a inv\u00e1lida",
         "conn_failed": "Error de conexi\u00f3n",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "de": {
         "lang": "de-DE",
@@ -9109,6 +9112,7 @@ _LOGIN_LOCALE = {
         "btn": "Anmelden",
         "invalid_pw": "Ung\u00fcltiges Passwort",
         "conn_failed": "Verbindung fehlgeschlagen",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "ru": {
         "lang": "ru-RU",
@@ -9118,6 +9122,7 @@ _LOGIN_LOCALE = {
         "btn": "\u0412\u043e\u0439\u0442\u0438",
         "invalid_pw": "\u041d\u0435\u0432\u0435\u0440\u043d\u044b\u0439 \u043f\u0430\u0440\u043e\u043b\u044c",
         "conn_failed": "\u041d\u0435 \u0443\u0434\u0430\u043b\u043e\u0441\u044c \u043f\u043e\u0434\u043a\u043b\u044e\u0447\u0438\u0442\u044c\u0441\u044f",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "zh": {
         "lang": "zh-CN",
@@ -9127,6 +9132,7 @@ _LOGIN_LOCALE = {
         "btn": "\u767b\u5f55",
         "invalid_pw": "\u5bc6\u7801\u9519\u8bef",
         "conn_failed": "\u8fde\u63a5\u5931\u8d25",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "zh-Hant": {
         "lang": "zh-TW",
@@ -9136,6 +9142,7 @@ _LOGIN_LOCALE = {
         "btn": "\u767b\u5f55",
         "invalid_pw": "\u5bc6\u78bc\u932f\u8aa4",
         "conn_failed": "\u9023\u63a5\u5931\u6557",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     # Strings mirror static/i18n.js login_* keys for the corresponding locale.
     # See issue #1442. When adding a new locale to LOCALES in i18n.js, also add
@@ -9148,6 +9155,7 @@ _LOGIN_LOCALE = {
         "btn": "Accedi",
         "invalid_pw": "Password non valida",
         "conn_failed": "Connessione fallita",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "ja": {
         "lang": "ja-JP",
@@ -9157,6 +9165,7 @@ _LOGIN_LOCALE = {
         "btn": "\u30b5\u30a4\u30f3\u30a4\u30f3",
         "invalid_pw": "\u30d1\u30b9\u30ef\u30fc\u30c9\u304c\u7121\u52b9\u3067\u3059",
         "conn_failed": "\u63a5\u7d9a\u5931\u6557",
+        "conn_unreachable": "サーバーに到達できません — VPN / Tailscale 接続を確認してください。",
     },
     "pt": {
         "lang": "pt-BR",
@@ -9166,6 +9175,7 @@ _LOGIN_LOCALE = {
         "btn": "Entrar",
         "invalid_pw": "Senha inv\u00e1lida",
         "conn_failed": "Falha na conex\u00e3o",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "ko": {
         "lang": "ko-KR",
@@ -9175,6 +9185,7 @@ _LOGIN_LOCALE = {
         "btn": "\ub85c\uadf8\uc778",
         "invalid_pw": "\ube44\ubc00\ubc88\ud638\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4",
         "conn_failed": "\uc5f0\uacb0 \uc2e4\ud328",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "tr": {
         "lang": "tr-TR",
@@ -9184,6 +9195,7 @@ _LOGIN_LOCALE = {
         "btn": "Oturum a\u00e7",
         "invalid_pw": "Ge\u00e7ersiz \u015fifre",
         "conn_failed": "Ba\u011flant\u0131 ba\u015far\u0131s\u0131z",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "pl": {
         "lang": "pl-PL",
@@ -9193,6 +9205,7 @@ _LOGIN_LOCALE = {
         "btn": "Zaloguj si\u0119",
         "invalid_pw": "Nieprawid\u0142owe has\u0142o",
         "conn_failed": "Po\u0142\u0105czenie nie powiod\u0142o si\u0119",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
     "vi": {
         "lang": "vi",
@@ -9202,6 +9215,7 @@ _LOGIN_LOCALE = {
         "btn": "\u0110\u0103ng nh\u1eadp",
         "invalid_pw": "M\u1eadt kh\u1ea9u kh\u00f4ng h\u1ee3p l\u1ec7",
         "conn_failed": "K\u1ebft n\u1ed1i th\u1ea5t b\u1ea1i",
+        "conn_unreachable": "Cannot reach server — check your VPN / Tailscale connection.",
     },
 }
 
@@ -9271,7 +9285,7 @@ button:hover{background:rgba(124,185,255,.25)}
   <div class="logo">{{BOT_NAME_INITIAL}}</div>
   <h1>{{BOT_NAME}}</h1>
   <p class="sub">{{LOGIN_SUBTITLE}}</p>
-  <form id="login-form" data-invalid-pw="{{LOGIN_INVALID_PW}}" data-conn-failed="{{LOGIN_CONN_FAILED}}">
+  <form id="login-form" data-invalid-pw="{{LOGIN_INVALID_PW}}" data-conn-failed="{{LOGIN_CONN_FAILED}}" data-conn-unreachable="{{LOGIN_CONN_UNREACHABLE}}">
     <input type="password" id="pw" placeholder="{{LOGIN_PLACEHOLDER}}" autofocus>
     <button type="submit">{{LOGIN_BTN}}</button>
     <button type="button" id="passkey-login" class="passkey-login" style="display:none">Sign in with passkey</button>
@@ -11230,6 +11244,9 @@ def handle_get(handler, parsed) -> bool:
             .replace("{{LOGIN_INVALID_PW}}", _html.escape(_login_strings["invalid_pw"]))
             .replace(
                 "{{LOGIN_CONN_FAILED}}", _html.escape(_login_strings["conn_failed"])
+            )
+            .replace(
+                "{{LOGIN_CONN_UNREACHABLE}}", _html.escape(_login_strings["conn_unreachable"])
             )
             .replace("{{OIDC_LOGIN_HTML}}", _oidc_login_html(parsed))
         )
