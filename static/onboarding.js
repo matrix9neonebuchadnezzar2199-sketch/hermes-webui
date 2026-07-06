@@ -101,13 +101,13 @@ function _renderProviderSelectOptions(selectedId){
   providers.forEach(p=>{provMap[p.id]=p;});
   if(!categories.length){
     // Fallback: flat list when no categories are available.
-    return providers.map(p=>`<option value="${esc(p.id)}">${esc(p.label)}${p.quick?' — '+esc(t('onboarding_quick_setup_badge')):''}</option>`).join('');
+    return providers.map(p=>`<option value="${esc(p.id)}">${esc(onboardingProviderLabel(p.id,p.label))}${p.quick?' — '+esc(t('onboarding_quick_setup_badge')):''}</option>`).join('');
   }
   return categories.map(cat=>{
     const opts=cat.providers.map(pid=>{
       const p=provMap[pid];
       if(!p)return '';
-      return `<option value="${esc(p.id)}"${p.id===selectedId?' selected':''}>${esc(p.label)}${p.quick?' — '+esc(t('onboarding_quick_setup_badge')):''}</option>`;
+      return `<option value="${esc(p.id)}"${p.id===selectedId?' selected':''}>${esc(onboardingProviderLabel(p.id,p.label))}${p.quick?' — '+esc(t('onboarding_quick_setup_badge')):''}</option>`;
     }).join('');
     return `<optgroup label="${esc(t('provider_category_'+cat.id)||cat.label)}">${opts}</optgroup>`;
   }).join('');
@@ -250,7 +250,7 @@ function _renderOnboardingBody(){
   if(key==='system'){
     const hermesOk=system.hermes_found&&system.imports_ok;
     const setupOk=!!system.chat_ready;
-    _setOnboardingNotice(system.provider_note|| (setupOk?t('onboarding_notice_system_ready'):t('onboarding_notice_system_unavailable')),setupOk?'success':(hermesOk?'info':'warn'));
+    _setOnboardingNotice(translateOnboardingServerNote(system.provider_note)|| (setupOk?t('onboarding_notice_system_ready'):t('onboarding_notice_system_unavailable')),setupOk?'success':(hermesOk?'info':'warn'));
     body.innerHTML=`
       <div class="onboarding-panel-grid">
         <div class="onboarding-check ${hermesOk?'ok':'warn'}"><strong>${t('onboarding_check_agent')}</strong><span>${hermesOk?t('onboarding_check_agent_ready'):t('onboarding_check_agent_missing')}</span></div>
@@ -260,7 +260,7 @@ function _renderOnboardingBody(){
       <div class="onboarding-copy">
         <p><strong>${t('onboarding_config_file')}</strong> ${esc(system.config_path||t('onboarding_unknown'))}</p>
         <p><strong>${t('onboarding_env_file')}</strong> ${esc(system.env_path||t('onboarding_unknown'))}</p>
-        <p>${esc(system.provider_note||'')}</p>
+        <p>${esc(translateOnboardingServerNote(system.provider_note)||'')}</p>
         ${system.current_provider?`<p><strong>${t('onboarding_current_provider')}</strong> ${esc(system.current_provider)}${system.current_model?` — ${esc(system.current_model)}`:''}</p>`:''}
         ${system.current_base_url?`<p><strong>${t('onboarding_base_url_label')}</strong> ${esc(system.current_base_url)}</p>`:''}
         ${system.missing_modules&&system.missing_modules.length?`<p><strong>${t('onboarding_missing_imports')}</strong> ${esc(system.missing_modules.join(', '))}</p>`:''}
@@ -275,7 +275,7 @@ function _renderOnboardingBody(){
     const showBaseUrl=provider&&provider.requires_base_url;
     const keyHelp=provider
       ? (provider.id==='anthropic'
-        ? 'Anthropic API key path: paste an Anthropic Console API key here. This is separate from a Claude Code subscription; use the Claude Code OAuth card if you want subscription credentials instead.'
+        ? t('onboarding_api_key_help_anthropic')
         : `${t('onboarding_api_key_help_prefix')} ${esc(provider.env_var)}.`)
       : '';
 
@@ -284,9 +284,9 @@ function _renderOnboardingBody(){
     const currentProviderName=((ONBOARDING.status.setup||{}).current||{}).provider||'';
     if(currentIsOauth){
       const isReady=!!(ONBOARDING.status.system||{}).chat_ready;
-      const providerLabel=esc(currentProviderName);
+      const providerLabel=esc(onboardingProviderLabel(currentProviderName,currentProviderName));
       const codexOauthPendingBody=currentProviderName==='openai-codex'
-        ? 'This instance is configured to use <strong>openai-codex</strong>, which uses OAuth rather than an API key. Use the button below to authenticate with ChatGPT, then continue once provider status refreshes.'
+        ? t('onboarding_oauth_codex_pending_body')
         : t('onboarding_oauth_provider_not_ready_body').replace('{provider}',providerLabel);
       if(isReady){
         _setOnboardingNotice(t('onboarding_notice_setup_already_ready'),'success');
@@ -340,7 +340,7 @@ function _renderOnboardingBody(){
       ${_renderOnboardingBaseUrlField(showBaseUrl)}
       <p class="onboarding-copy">${keyHelp}</p>
       ${showBaseUrl?`<p class="onboarding-copy">${t('onboarding_base_url_help')}</p>`:''}
-      <p class="onboarding-copy">${esc(setup.unsupported_note||'')||''}</p>`;
+      <p class="onboarding-copy">${esc(translateOnboardingServerNote(setup.unsupported_note)||'')||''}</p>`;
     return;
   }
 
@@ -394,7 +394,7 @@ function _renderOnboardingBody(){
   _setOnboardingNotice(t('onboarding_notice_finish'), 'success');
   body.innerHTML=`
     <div class="onboarding-summary">
-      <div><strong>${t('onboarding_provider_label')}</strong><span>${esc((provider&&provider.label)||ONBOARDING.form.provider||t('onboarding_not_set'))}</span></div>
+      <div><strong>${t('onboarding_provider_label')}</strong><span>${esc(provider?onboardingProviderLabel(provider.id,provider.label):(ONBOARDING.form.provider?onboardingProviderLabel(ONBOARDING.form.provider,ONBOARDING.form.provider):t('onboarding_not_set')))}</span></div>
       <div><strong>${t('onboarding_model_label')}</strong><span>${esc(_getOnboardingSelectedModel()||t('onboarding_not_set'))}</span></div>
       <div><strong>${t('onboarding_workspace_label')}</strong><span>${esc(ONBOARDING.form.workspace||t('onboarding_not_set'))}</span></div>
       <div><strong>${t('onboarding_check_password')}</strong><span>${t(_getOnboardingPasswordSummaryKey(settings))}</span></div>
@@ -446,6 +446,7 @@ async function loadOnboardingWizard(){
     ONBOARDING.active=!status.completed;
     if(!ONBOARDING.active) return false;
     $('onboardingOverlay').style.display='flex';
+    if(typeof applyLocaleToDOM==='function') applyLocaleToDOM();
     _renderOnboardingSteps();
     _renderOnboardingBody();
     return true;

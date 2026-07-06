@@ -1825,6 +1825,29 @@ const LOCALES = {
     terminal_cdn_failed_jsdelivr: 'Terminal library failed to load. Check network access to cdn.jsdelivr.net.',
     chat_error_prefix: '**Error:** ',
     conn_unreachable: 'Cannot reach server — check your VPN / Tailscale connection.',
+    onboarding_provider_openrouter: 'OpenRouter',
+    onboarding_provider_anthropic: 'Anthropic',
+    onboarding_provider_openai: 'OpenAI',
+    onboarding_provider_ollama: 'Ollama',
+    onboarding_provider_lmstudio: 'LM Studio',
+    onboarding_provider_custom: 'Custom OpenAI-compatible',
+    onboarding_provider_gemini: 'Google Gemini',
+    onboarding_provider_deepseek: 'DeepSeek',
+    onboarding_provider_xiaomi: 'Xiaomi MiMo',
+    onboarding_provider_zai: 'Z.AI / GLM (智谱)',
+    onboarding_provider_nvidia: 'NVIDIA NIM',
+    onboarding_provider_mistralai: 'Mistral',
+    onboarding_provider_x_ai: 'xAI (Grok)',
+    onboarding_oauth_label_anthropic: 'Claude Code OAuth',
+    onboarding_server_note_agent_unavailable: 'Hermes is not fully importable from the Web UI yet. Finish bootstrap or fix the agent install before provider setup will work.',
+    onboarding_server_note_needs_provider: 'Hermes is installed, but you still need to choose a provider and save working credentials.',
+    onboarding_server_note_ready: 'Hermes is minimally configured and ready to chat via {0}.',
+    onboarding_server_note_custom_incomplete: 'Hermes has a saved provider/model selection but still needs the base URL and API key required to chat.',
+    onboarding_server_note_api_key_incomplete: 'Hermes has a saved provider/model selection but still needs the API key required to chat.',
+    onboarding_server_note_oauth_incomplete: 'Provider \'{0}\' is configured but not yet authenticated. Run \'hermes auth\' or \'hermes model\' in a terminal to complete setup, then reload the Web UI.',
+    onboarding_unsupported_provider_note: 'Advanced provider flows such as Nous Portal and GitHub Copilot are still terminal-first. OpenAI Codex and Anthropic Claude Code can be authenticated in this onboarding flow when your Hermes config selects the corresponding provider.',
+    onboarding_api_key_help_anthropic: 'Anthropic API key path: paste an Anthropic Console API key here. This is separate from a Claude Code subscription; use the Claude Code OAuth card if you want subscription credentials instead.',
+    onboarding_oauth_codex_pending_body: 'This instance is configured to use <strong>openai-codex</strong>, which uses OAuth rather than an API key. Use the button below to authenticate with ChatGPT, then continue once provider status refreshes.',
 },
 
   it: {
@@ -25236,6 +25259,52 @@ const SERVER_ERROR_I18N_MAP = {
   'no_provider': 'server_err_no_provider'
 };
 
+// Onboarding status notes returned by /api/onboarding/status (English server text).
+const ONBOARDING_SERVER_NOTE_MAP = {
+  'Hermes is not fully importable from the Web UI yet. Finish bootstrap or fix the agent install before provider setup will work.': 'onboarding_server_note_agent_unavailable',
+  'Hermes is installed, but you still need to choose a provider and save working credentials.': 'onboarding_server_note_needs_provider',
+  'Hermes has a saved provider/model selection but still needs the base URL and API key required to chat.': 'onboarding_server_note_custom_incomplete',
+  'Hermes has a saved provider/model selection but still needs the API key required to chat.': 'onboarding_server_note_api_key_incomplete',
+  'Advanced provider flows such as Nous Portal and GitHub Copilot are still terminal-first. OpenAI Codex and Anthropic Claude Code can be authenticated in this onboarding flow when your Hermes config selects the corresponding provider.': 'onboarding_unsupported_provider_note',
+};
+
+/**
+ * Localized label for an onboarding provider id (falls back to server label).
+ * @param {string} id
+ * @param {string} [fallback]
+ * @returns {string}
+ */
+function onboardingProviderLabel(id, fallback) {
+  const key = 'onboarding_provider_' + String(id || '').replace(/-/g, '_');
+  const val = t(key);
+  return (val && val !== key) ? val : (fallback || id || '');
+}
+
+/**
+ * Translate onboarding server notes (provider_note, unsupported_note).
+ * @param {string|undefined|null} msg
+ * @returns {string}
+ */
+function translateOnboardingServerNote(msg) {
+  const raw = String(msg == null ? '' : msg).trim();
+  if (!raw) return raw;
+  const key = ONBOARDING_SERVER_NOTE_MAP[raw];
+  if (key) {
+    const translated = t(key);
+    if (translated && translated !== key) return translated;
+  }
+  let m = raw.match(/^Hermes is minimally configured and ready to chat via (.+)\.$/);
+  if (m) {
+    const label = onboardingProviderLabel(m[1], m[1]);
+    return t('onboarding_server_note_ready', label);
+  }
+  m = raw.match(/^Provider '([^']+)' is configured but not yet authenticated\. Run 'hermes auth' or 'hermes model' in a terminal to complete setup, then reload the Web UI\.$/);
+  if (m) {
+    return t('onboarding_server_note_oauth_incomplete', m[1]);
+  }
+  return raw;
+}
+
 /**
  * Translate a server-returned error message using the active locale when possible.
  * @param {string|undefined|null} msg
@@ -25272,6 +25341,23 @@ function t(key, ...args) {
 }
 
 /**
+ * Best-effort browser locale tag (e.g. ja-JP) for first-visit language detection.
+ * @returns {string|null}
+ */
+function _browserLocaleTag() {
+  try {
+    if (typeof navigator === 'undefined') return null;
+    const langs = navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language];
+    for (const tag of langs) {
+      if (tag && String(tag).trim()) return String(tag).trim();
+    }
+  } catch (_) {}
+  return null;
+}
+
+/**
  * Switch locale by language code (e.g. 'en', 'zh').
  * Persists to localStorage and updates the <html lang> attribute.
  * @param {string} lang
@@ -25290,7 +25376,12 @@ function setLocale(lang) {
 function loadLocale() {
   let stored = null;
   try { stored = localStorage.getItem('hermes-lang'); } catch (_) {}
-  setLocale(resolvePreferredLocale(null, stored));
+  const browser = _browserLocaleTag();
+  // Recover from an earlier boot that persisted English while the browser prefers Japanese.
+  if (stored === 'en' && browser && resolveLocale(browser) === 'ja') {
+    stored = null;
+  }
+  setLocale(resolvePreferredLocale(null, stored || browser));
 }
 
 /**

@@ -35,6 +35,9 @@ services:
       # Without this, the container may not be able to read your mounted files.
       - WANTED_UID=${UID:-1000}
       - WANTED_GID=${GID:-1000}
+      - HERMES_SKIP_CHMOD=${HERMES_SKIP_CHMOD:-}
+      - OLLAMA_BASE_URL=${OLLAMA_BASE_URL:-}
+      - HERMES_WEBUI_DEFAULT_LANGUAGE=${HERMES_WEBUI_DEFAULT_LANGUAGE:-ja}
       # Required: bind address and port
       - HERMES_WEBUI_HOST=0.0.0.0
       - HERMES_WEBUI_PORT=8787
@@ -54,4 +57,6 @@ services:
       #   world-readable. Both are documented in api/startup.py.
       # - HERMES_SKIP_CHMOD=1
       # - HERMES_HOME_MODE=0640
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     restart: unless-stopped

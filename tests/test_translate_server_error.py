@@ -45,6 +45,24 @@ def test_ja_localization_batch_keys_have_japanese_values():
         assert entry in src, f"Missing ja translation: {entry}"
 
 
+def test_onboarding_server_note_translation_helpers_exist():
+    src = read(REPO / "static" / "i18n.js")
+    assert "function translateOnboardingServerNote(msg)" in src
+    assert "function onboardingProviderLabel(id, fallback)" in src
+    assert "onboarding_server_note_needs_provider" in src
+
+
+def test_onboarding_js_uses_server_note_translation():
+    src = read(REPO / "static" / "onboarding.js")
+    assert "translateOnboardingServerNote(system.provider_note)" in src
+    assert "onboardingProviderLabel(p.id,p.label)" in src
+
+
+def test_ja_onboarding_server_notes_translated():
+    src = read(REPO / "static" / "i18n.js")
+    assert "onboarding_server_note_needs_provider: 'Hermes はインストール済みですが" in src
+
+
 def test_workspace_api_uses_translate_server_error():
     src = read(REPO / "static" / "workspace.js")
     assert "translateServerError(j.error||j.message||text)" in src

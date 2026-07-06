@@ -257,6 +257,25 @@ def test_set_locale_normalizes_alias_and_persists_canonical_key():
     assert result["htmlLang"] == "zh-CN"
 
 
+def test_load_locale_uses_browser_language_when_unset():
+    result = _run_i18n_case(
+        """
+(() => {
+  globalThis.navigator = { language: 'ja-JP', languages: ['ja-JP', 'en-US'] };
+  loadLocale();
+  return {
+    saved: localStorage.getItem('hermes-lang'),
+    htmlLang: document.documentElement.lang,
+    title: t('onboarding_title'),
+  };
+})()
+        """
+    )
+    assert result["saved"] == "ja"
+    assert result["htmlLang"] == "ja-JP"
+    assert result["title"] == "Hermes Web UI へようこそ"
+
+
 def test_boot_and_settings_panel_use_shared_locale_precedence():
     assert _has_precedence_call(BOOT_JS, "s.language")
     assert _has_precedence_call(PANELS_JS, "settings.language")
