@@ -2012,6 +2012,16 @@ function _isReadOnlySession(session) {
   return !!(session && (session.read_only || session.is_read_only));
 }
 
+function _isBranchableReadOnlySession(session) {
+  if (!_isReadOnlySession(session)) return false;
+  const sources = [
+    session && session.source_tag,
+    session && session.raw_source,
+    session && session.source,
+  ].map(v => String(v || '').trim().toLowerCase());
+  return sources.includes('cron');
+}
+
 function _sourceKeyForSession(session) {
   return (session && (session.raw_source || session.source_tag || session.source || '') || '').toLowerCase();
 }

@@ -1807,7 +1807,10 @@ async function cmdBranch(args){
   const readOnlySession=typeof _isReadOnlySession==='function'
     ? _isReadOnlySession(S.session)
     : !!(S.session&&(S.session.read_only||S.session.is_read_only));
-  if(readOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
+  const branchableReadOnlySession=typeof _isBranchableReadOnlySession==='function'
+    ? _isBranchableReadOnlySession(S.session)
+    : false;
+  if(readOnlySession&&!branchableReadOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
   const customTitle=(args||'').trim()||null;
   try{
     const data=await api('/api/session/branch',{
@@ -1838,7 +1841,10 @@ async function forkFromMessage(msgIdx){
   const readOnlySession=typeof _isReadOnlySession==='function'
     ? _isReadOnlySession(S.session)
     : !!(S.session&&(S.session.read_only||S.session.is_read_only));
-  if(readOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
+  const branchableReadOnlySession=typeof _isBranchableReadOnlySession==='function'
+    ? _isBranchableReadOnlySession(S.session)
+    : false;
+  if(readOnlySession&&!branchableReadOnlySession){showToast('Read-only sessions cannot be forked.',3000);return;}
   const initialSid = S.session.session_id;
   // Capture the absolute keep_count before any async work that may
   // reset _oldestIdx.  _oldestIdx is 0 when the full transcript is
